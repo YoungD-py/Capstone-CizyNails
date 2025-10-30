@@ -24,6 +24,19 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/bookings/available-times', [BookingController::class, 'getAvailableTimes']);
 
+Route::post('/midtrans/webhook', function (Request $request) {
+    $midtransService = new \App\Services\MidtransService();
+    $notification = $request->all();
+    
+    $result = $midtransService->handleNotification($notification);
+    
+    if ($result) {
+        return response()->json(['status' => 'success'], 200);
+    } else {
+        return response()->json(['status' => 'error'], 400);
+    }
+});
+
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
@@ -35,7 +48,6 @@ Route::middleware('auth')->group(function () {
     // Booking routes
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel']);
-    Route::post('/bookings/{booking}/upload-payment-proof', [BookingController::class, 'uploadPaymentProof']);
     
     Route::middleware('admin')->group(function () {
         Route::post('/services', [ServiceController::class, 'store']);
