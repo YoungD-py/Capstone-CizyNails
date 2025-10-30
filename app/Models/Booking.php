@@ -19,14 +19,12 @@ class Booking extends Model
         'price',
         'status',
         'notes',
-        'payment_proof_path',
         'payment_status',
-        'payment_verified_at',
+        'transaction_id', // Added transaction_id for Midtrans
     ];
 
     protected $casts = [
         'booking_date' => 'date',
-        'payment_verified_at' => 'datetime',
         'needs_removal' => 'boolean',
     ];
 
