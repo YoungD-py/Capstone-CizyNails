@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book Appointment - Cizy Nails</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Added Midtrans Snap script -->
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -91,37 +93,8 @@
         </div>
     </div>
 
-    <!-- Add QRIS Payment Modal -->
-    <div id="paymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
-            <h2 class="text-2xl font-bold mb-4">Payment Confirmation</h2>
-            
-            <div class="mb-6">
-                <p class="text-gray-700 mb-4">Please scan the QRIS code below to make payment:</p>
-                <div class="bg-gray-100 p-4 rounded-lg flex justify-center mb-4">
-                    <img src="/img/qris.jpg" alt="QRIS Code" class="max-w-xs">
-                </div>
-                <p class="text-sm text-gray-600 text-center">Amount: <span id="paymentAmount" class="font-bold text-lg text-pink-600"></span></p>
-            </div>
-
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-900 mb-2">Upload Payment Proof</label>
-                <input type="file" id="paymentProof" accept="image/jpeg,image/png,image/jpg" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                <p class="text-xs text-gray-500 mt-1">JPG or PNG only, max 5MB</p>
-            </div>
-
-            <div class="flex gap-3">
-                <button type="button" id="cancelPayment" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-semibold">
-                    Cancel
-                </button>
-                <button type="button" id="submitPayment" class="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition font-semibold">
-                    Submit Payment Proof
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Added success modal for after payment proof upload -->
+    <!-- Replaced QRIS payment modal with Midtrans Snap integration -->
+    <!-- Success Modal -->
     <div id="successModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4 text-center">
             <div class="mb-4">
@@ -129,8 +102,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
             </div>
-            <h2 class="text-2xl font-bold mb-2">Terima Kasih!</h2>
-            <p class="text-gray-600 mb-6">Bukti transfer Anda telah berhasil diunggah. Admin akan memverifikasi pembayaran Anda segera.</p>
+            <h2 class="text-2xl font-bold mb-2">Terimakasih Atas Booking Appointment Anda!</h2>
+            <p class="text-gray-600 mb-6">Pembayaran Anda telah berhasil diproses. Silakan cek dashboard untuk detail booking Anda.</p>
             <button type="button" id="backToDashboard" class="w-full px-4 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition font-semibold">
                 Kembali ke Dashboard
             </button>
@@ -145,15 +118,11 @@
         const bookingForm = document.getElementById('bookingForm');
         const removalOptionContainer = document.getElementById('removalOptionContainer');
         const durationInfo = document.getElementById('durationInfo');
-        const paymentModal = document.getElementById('paymentModal');
-        const paymentProofInput = document.getElementById('paymentProof');
-        const submitPaymentBtn = document.getElementById('submitPayment');
-        const cancelPaymentBtn = document.getElementById('cancelPayment');
-        const paymentAmountSpan = document.getElementById('paymentAmount');
         const successModal = document.getElementById('successModal');
         const backToDashboardBtn = document.getElementById('backToDashboard');
 
         let currentBookingId = null;
+        let snapToken = null;
 
         async function loadAvailableTimes() {
             const serviceId = serviceSelect.value;
@@ -265,8 +234,25 @@
 
                 if (response.ok) {
                     currentBookingId = result.booking.id;
-                    paymentAmountSpan.textContent = 'Rp.' + new Intl.NumberFormat('id-ID').format(result.booking.price);
-                    paymentModal.classList.remove('hidden');
+                    snapToken = result.snap_token;
+                    
+                    snap.pay(snapToken, {
+                        onSuccess: function(result) {
+                            console.log('[v0] Payment success:', result);
+                            successModal.classList.remove('hidden');
+                        },
+                        onPending: function(result) {
+                            console.log('[v0] Payment pending:', result);
+                            alert('Pembayaran sedang diproses. Silakan tunggu...');
+                        },
+                        onError: function(result) {
+                            console.log('[v0] Payment error:', result);
+                            alert('Pembayaran gagal. Silakan coba lagi.');
+                        },
+                        onClose: function() {
+                            console.log('[v0] Payment dialog closed');
+                        }
+                    });
                 } else {
                     const errorMessage = result.message || 'Failed to create booking';
                     const errorDetails = result.errors ? '\n\n' + Object.values(result.errors).flat().join('\n') : '';
@@ -279,47 +265,8 @@
             }
         });
 
-        submitPaymentBtn.addEventListener('click', async () => {
-            if (!paymentProofInput.files.length) {
-                alert('Please select a payment proof image');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('payment_proof', paymentProofInput.files[0]);
-
-            try {
-                const response = await fetch(`/api/bookings/${currentBookingId}/upload-payment-proof`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
-                        'Accept': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: formData,
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    paymentModal.classList.add('hidden');
-                    successModal.classList.remove('hidden');
-                } else {
-                    alert('Error: ' + (result.message || 'Failed to upload payment proof'));
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error uploading payment proof');
-            }
-        });
-
         backToDashboardBtn.addEventListener('click', () => {
             window.location.href = '{{ route("dashboard") }}';
-        });
-
-        cancelPaymentBtn.addEventListener('click', () => {
-            paymentModal.classList.add('hidden');
-            paymentProofInput.value = '';
         });
 
         // Load times on page load if date is pre-filled
