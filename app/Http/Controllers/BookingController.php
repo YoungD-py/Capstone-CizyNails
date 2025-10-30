@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Http\Requests\StoreBookingRequest;
 use App\Mail\BookingPaymentNotification;
+use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Mail;
@@ -87,9 +88,21 @@ class BookingController extends Controller
                 $schedule->increment('eyelash_booked');
             }
 
+            $midtransService = new MidtransService();
+            $transactionResult = $midtransService->createTransaction($booking);
+
+            if (!$transactionResult['success']) {
+                return response()->json([
+                    'message' => 'Failed to create payment transaction',
+                    'error' => $transactionResult['error']
+                ], 500);
+            }
+
             return response()->json([
                 'message' => 'Booking created successfully',
                 'booking' => $booking->load('service'),
+                'snap_token' => $transactionResult['snap_token'],
+                'order_id' => $transactionResult['order_id'],
             ], 201);
         } catch (\Exception $e) {
             \Log::error('Booking creation error: ' . $e->getMessage(), [
@@ -104,40 +117,6 @@ class BookingController extends Controller
         }
     }
 
-    public function uploadPaymentProof(Request $request, Booking $booking)
-    {
-        $user = $request->user();
-        if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
-        }
-
-        if ($booking->user_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $validated = $request->validate([
-            'payment_proof' => 'required|image|mimes:jpeg,png,jpg|max:5120',
-        ]);
-
-        if ($request->hasFile('payment_proof')) {
-            $file = $request->file('payment_proof');
-            $path = $file->store('payment_proofs', 'public');
-
-            $booking->update([
-                'payment_proof_path' => $path,
-                'payment_status' => 'pending',
-            ]);
-
-            Mail::to('deruanggoro009@gmail.com')->send(new BookingPaymentNotification($booking));
-
-            return response()->json([
-                'message' => 'Payment proof uploaded successfully',
-                'booking' => $booking,
-            ], 200);
-        }
-
-        return response()->json(['message' => 'No file uploaded'], 400);
-    }
 
     public function cancel(Booking $booking, Request $request)
     {
@@ -171,6 +150,17 @@ class BookingController extends Controller
         return response()->json([
             'message' => 'Booking cancelled successfully',
             'booking' => $booking,
+        ]);
+    }
+
+    public function show(Booking $booking, Request $request)
+    {
+        if ($booking->user_id !== $request->user()->id && $request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        return response()->json([
+            'booking' => $booking->load('service', 'user'),
         ]);
     }
 
