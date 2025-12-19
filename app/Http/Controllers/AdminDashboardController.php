@@ -88,8 +88,17 @@ class AdminDashboardController extends Controller
 
     public function schedules()
     {
-        $services = Service::with('schedules')->get();
-        return view('admin.schedules', compact('services'));
+        // Get schedules for next 7 days
+        $startDate = now()->toDateString();
+        $endDate = now()->addDays(7)->toDateString();
+        
+        $schedules = \App\Models\Schedule::whereBetween('date', [$startDate, $endDate])
+            ->orderBy('date')
+            ->orderBy('time_slot')
+            ->get()
+            ->groupBy('date');
+
+        return view('admin.schedules', compact('schedules'));
     }
 
     public function customers()
