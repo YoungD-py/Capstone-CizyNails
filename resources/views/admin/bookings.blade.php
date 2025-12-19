@@ -71,11 +71,19 @@
                 </form>
             </div>
 
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-semibold text-gray-800">Bookings List</h2>
+                <button onclick="bulkDelete()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-semibold">Delete Selected</button>
+            </div>
+
             <!-- Bookings Table -->
             <div class="bg-white rounded-lg shadow-md overflow-hidden">
                 <table class="w-full">
                     <thead class="bg-gray-50">
                         <tr>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900 w-10">
+                                <input type="checkbox" id="selectAll" class="w-4 h-4">
+                            </th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Customer</th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Service</th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Date & Time</th>
@@ -88,6 +96,9 @@
                     <tbody class="divide-y">
                         @forelse($bookings as $booking)
                             <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4 text-sm">
+                                    <input type="checkbox" class="row-checkbox w-4 h-4" value="{{ $booking->id }}">
+                                </td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->user->name }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->service->name }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->booking_date->format('M d, Y') }} at {{ $booking->booking_time }}</td>
@@ -97,19 +108,20 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-sm">
-                                    <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $booking->payment_status === 'verified' ? 'bg-green-100 text-green-800' : ($booking->payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
+                                    <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $booking->payment_status === 'paid' ? 'bg-blue-100 text-blue-800' : ($booking->payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
                                         {{ ucfirst($booking->payment_status) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-sm font-semibold text-pink-600">Rp. {{ number_format($booking->price, 0, ',', '.') }}</td>
-                                <td class="px-6 py-4 text-sm space-x-2">
+                                <td class="px-6 py-4 text-sm space-y-1">
                                     @if($booking->payment_proof_path)
-                                        <button onclick="viewPaymentProof('{{ asset('storage/' . $booking->payment_proof_path) }}')" class="text-blue-600 hover:text-blue-800">View Proof</button>
+                                        <button onclick="viewPaymentProof('{{ asset('storage/' . $booking->payment_proof_path) }}')" class="block text-blue-600 hover:text-blue-800">View Proof</button>
                                     @endif
                                     @if($booking->payment_status === 'pending' && $booking->payment_proof_path)
-                                        <button onclick="verifyPayment({{ $booking->id }})" class="text-green-600 hover:text-green-800">Verify</button>
-                                        <button onclick="rejectPayment({{ $booking->id }})" class="text-red-600 hover:text-red-800">Reject</button>
+                                        <button onclick="verifyPayment({{ $booking->id }})" class="block text-green-600 hover:text-green-800">Verify</button>
+                                        <button onclick="rejectPayment({{ $booking->id }})" class="block text-red-600 hover:text-red-800">Reject</button>
                                     @endif
+                                    <button onclick="deleteBooking({{ $booking->id }})" class="block text-red-600 hover:text-red-800">Delete</button>
                                 </td>
                             </tr>
                         @empty
@@ -197,6 +209,75 @@
                     alert('Error rejecting payment');
                 });
             }
+        }
+
+        function deleteBooking(bookingId) {
+            if (confirm('Are you sure you want to delete this booking?')) {
+                fetch(`/admin/bookings/${bookingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Booking deleted');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.message || 'Failed to delete booking'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting booking');
+                });
+            }
+        }
+
+        // Bulk delete handling
+        const selectAll = document.getElementById('selectAll');
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+
+        if (selectAll) {
+            selectAll.addEventListener('change', (e) => {
+                rowCheckboxes.forEach(cb => cb.checked = e.target.checked);
+            });
+        }
+
+        function bulkDelete() {
+            const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+            if (ids.length === 0) {
+                alert('Please select at least one booking to delete');
+                return;
+            }
+
+            if (!confirm(`Delete ${ids.length} selected booking(s)?`)) {
+                return;
+            }
+
+            fetch('/admin/bookings/bulk-delete', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ids })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Selected bookings deleted');
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to delete bookings'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting bookings');
+            });
         }
     </script>
 </body>

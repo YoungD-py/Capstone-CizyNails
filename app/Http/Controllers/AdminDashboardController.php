@@ -80,6 +80,58 @@ class AdminDashboardController extends Controller
         return response()->json(['success' => true, 'message' => 'Payment rejected']);
     }
 
+    public function destroy(Booking $booking)
+    {
+        // rollback capacity if booking was active (not cancelled)
+        if ($booking->status !== 'cancelled') {
+            $schedule = \App\Models\Schedule::where('date', $booking->booking_date)
+                ->where('time_slot', $booking->booking_time)
+                ->first();
+
+            if ($schedule) {
+                if ($booking->service->type === 'nails_art') {
+                    $schedule->decrement('nails_art_booked');
+                } else {
+                    $schedule->decrement('eyelash_booked');
+                }
+            }
+        }
+
+        $booking->delete();
+
+        return response()->json(['success' => true, 'message' => 'Booking deleted']);
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:bookings,id',
+        ]);
+
+        $bookings = Booking::whereIn('id', $validated['ids'])->with(['service'])->get();
+
+        foreach ($bookings as $booking) {
+            if ($booking->status !== 'cancelled') {
+                $schedule = \App\Models\Schedule::where('date', $booking->booking_date)
+                    ->where('time_slot', $booking->booking_time)
+                    ->first();
+
+                if ($schedule) {
+                    if ($booking->service->type === 'nails_art') {
+                        $schedule->decrement('nails_art_booked');
+                    } else {
+                        $schedule->decrement('eyelash_booked');
+                    }
+                }
+            }
+
+            $booking->delete();
+        }
+
+        return response()->json(['success' => true, 'message' => 'Selected bookings deleted']);
+    }
+
     public function services()
     {
         $services = Service::all();
