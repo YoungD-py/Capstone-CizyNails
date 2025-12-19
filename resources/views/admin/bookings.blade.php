@@ -85,6 +85,7 @@
                                 <input type="checkbox" id="selectAll" class="w-4 h-4">
                             </th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Customer</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Phone</th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Service</th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Date & Time</th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
@@ -99,7 +100,11 @@
                                 <td class="px-4 py-4 text-sm">
                                     <input type="checkbox" class="row-checkbox w-4 h-4" value="{{ $booking->id }}">
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->user->name }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900">
+                                    <div class="font-semibold">{{ $booking->user->name }}</div>
+                                    <div class="text-gray-500 text-xs">{{ $booking->user->email }}</div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->user->phone ?? '-' }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->service->name }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->booking_date->format('M d, Y') }} at {{ $booking->booking_time }}</td>
                                 <td class="px-6 py-4 text-sm">
@@ -126,7 +131,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-4 text-center text-gray-500">No bookings found</td>
+                                <td colspan="8" class="px-6 py-4 text-center text-gray-500">No bookings found</td>
                             </tr>
                         @endforelse
                     </tbody>
