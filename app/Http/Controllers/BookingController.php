@@ -137,6 +137,11 @@ class BookingController extends Controller
                 ], 500);
             }
 
+            // Store transaction_id (order_id) for later status checks and webhook reconciliation
+            if (!empty($transactionResult['order_id'])) {
+                $booking->update(['transaction_id' => $transactionResult['order_id']]);
+            }
+
             return response()->json([
                 'message' => 'Booking created successfully',
                 'booking' => $booking->load('service'),
@@ -190,6 +195,44 @@ class BookingController extends Controller
             'message' => 'Booking cancelled successfully',
             'booking' => $booking,
         ]);
+    }
+
+    public function retryPayment(Booking $booking, Request $request)
+    {
+        if ($booking->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($booking->payment_status === 'paid') {
+            return response()->json(['message' => 'This booking is already paid'], 400);
+        }
+
+        if ($booking->status === 'cancelled') {
+            return response()->json(['message' => 'Cannot retry payment for cancelled booking'], 400);
+        }
+
+        try {
+            $midtransService = new MidtransService();
+            $result = $midtransService->getSnapToken($booking);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'message' => 'Failed to create payment transaction',
+                    'error' => $result['error']
+                ], 500);
+            }
+
+            return response()->json([
+                'message' => 'Payment retry initiated',
+                'snap_token' => $result['snap_token'],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Retry payment error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An error occurred while retrying payment',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function show(Booking $booking, Request $request)

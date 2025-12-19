@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Dashboard - Cizy Nails</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Added html2canvas for screenshot functionality -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -64,13 +64,12 @@
             @if($upcomingBookings->count() > 0)
                 <div class="space-y-4">
                     @foreach($upcomingBookings as $booking)
-                        <!-- Added cursor-pointer and onclick to open detail modal -->
-                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition cursor-pointer" onclick="openBookingDetail({{ $booking->id }})">
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition {{ $booking->payment_status === 'pending' ? 'border-yellow-300 bg-yellow-50' : '' }}">
                             <div class="flex justify-between items-start">
-                                <div>
+                                <div class="flex-1 cursor-pointer" onclick="openBookingDetail({{ $booking->id }})">
                                     <h3 class="text-lg font-semibold text-gray-900">{{ $booking->service->name }}</h3>
                                     <p class="text-gray-600 text-sm mt-1">
-                                        📅 {{ $booking->booking_date->format('M d, Y') }} at {{ $booking->booking_time }}
+                                        📅 {{ $booking->booking_date->format('M d, Y') }} at {{ \Carbon\Carbon::parse($booking->booking_time)->format('H:i') }}
                                     </p>
                                     <p class="text-gray-600 text-sm">
                                         ⏱️ {{ $booking->total_duration_minutes }} minutes
@@ -83,15 +82,21 @@
                                 </div>
                                 <div class="text-right">
                                     <p class="text-pink-600 font-bold text-lg">Rp.{{ number_format($booking->price, 0) }}</p>
-                                    <!-- Added payment_status display -->
-                                    <span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                                    <span class="inline-block mt-2 px-3 py-1 {{ $booking->status === 'confirmed' ? 'bg-green-100 text-green-800' : ($booking->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }} text-sm rounded-full">
                                         {{ ucfirst($booking->status) }}
                                     </span>
                                     <span class="inline-block mt-1 px-3 py-1 {{ $booking->payment_status === 'paid' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800' }} text-sm rounded-full">
-                                        Payment: {{ ucfirst($booking->payment_status) }}
+                                        {{ $booking->payment_status === 'paid' ? 'Paid' : 'Unpaid' }}
                                     </span>
-                                    <button onclick="event.stopPropagation(); cancelBooking({{ $booking->id }})" class="block mt-2 text-red-600 hover:text-red-800 text-sm">
-                                        Cancel
+                                    
+                                    @if($booking->payment_status === 'pending')
+                                        <button onclick="retryPayment({{ $booking->id }})" class="block mt-2 w-full bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm font-semibold">
+                                            💳 Pay Now
+                                        </button>
+                                    @endif
+                                    
+                                    <button onclick="cancelBooking({{ $booking->id }})" class="block mt-2 w-full text-red-600 hover:text-red-800 text-sm">
+                                        Cancel Booking
                                     </button>
                                 </div>
                             </div>
@@ -297,6 +302,49 @@
                 })
                 .catch(error => {
                     alert('Error cancelling appointment');
+
+                            function retryPayment(bookingId) {
+                                fetch(`/api/bookings/${bookingId}/retry-payment`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                    },
+                                    credentials: 'include'
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.snap_token) {
+                                        snap.pay(data.snap_token, {
+                                            onSuccess: function(result) {
+                                                console.log('Payment success:', result);
+                                                alert('Payment successful! Your booking is confirmed.');
+                                                location.reload();
+                                            },
+                                            onPending: function(result) {
+                                                console.log('Payment pending:', result);
+                                                alert('Payment is being processed. Please wait for confirmation.');
+                                                location.reload();
+                                            },
+                                            onError: function(result) {
+                                                console.log('Payment error:', result);
+                                                alert('Payment failed. Please try again.');
+                                            },
+                                            onClose: function() {
+                                                console.log('Payment dialog closed');
+                                            }
+                                        });
+                                    } else {
+                                        alert('Error: ' + (data.message || 'Failed to initiate payment'));
+                                    }
+                                })
+                                .catch(error => {
+                                    alert('Error initiating payment');
+                                    console.error(error);
+                                });
+                            }
                     console.error(error);
                 });
             }

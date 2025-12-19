@@ -127,6 +127,7 @@ class MidtransService
                     // Payment successful
                     $booking->update([
                         'payment_status' => 'paid',
+                        'status' => 'confirmed',
                         'transaction_id' => $orderId,
                     ]);
                     
@@ -155,6 +156,58 @@ class MidtransService
         } catch (Exception $e) {
             \Log::error('Midtrans webhook handling error: ' . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Get new Snap token for existing booking (retry payment)
+     */
+    public function getSnapToken($booking)
+    {
+        try {
+            $transactionDetails = [
+                'order_id' => 'BOOKING-' . $booking->id . '-' . time(),
+                'gross_amount' => (int) $booking->price,
+            ];
+
+            $customerDetails = [
+                'first_name' => $booking->user->name,
+                'email' => $booking->user->email,
+                'phone' => $booking->user->phone ?? '',
+            ];
+
+            $itemDetails = [
+                [
+                    'id' => 'SERVICE-' . $booking->service->id,
+                    'price' => (int) $booking->price,
+                    'quantity' => 1,
+                    'name' => $booking->service->name,
+                ]
+            ];
+
+            $payload = [
+                'transaction_details' => $transactionDetails,
+                'customer_details' => $customerDetails,
+                'item_details' => $itemDetails,
+            ];
+
+            $snapToken = Snap::getSnapToken($payload);
+            
+            // Update transaction_id
+            $booking->update([
+                'transaction_id' => $transactionDetails['order_id'],
+            ]);
+
+            return [
+                'success' => true,
+                'snap_token' => $snapToken,
+            ];
+        } catch (Exception $e) {
+            \Log::error('Midtrans get snap token error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
         }
     }
 }
