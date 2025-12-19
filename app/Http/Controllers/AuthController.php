@@ -49,6 +49,8 @@ class AuthController extends Controller
         
         if ($user->role === 'admin') {
             return redirect()->route('admin.dashboard')->with('success', 'Registration successful!');
+        } elseif ($user->role === 'nail_artist') {
+            return redirect()->route('nail-artist.dashboard')->with('success', 'Registration successful!');
         }
         
         return redirect()->route('dashboard')->with('success', 'Registration successful!');
@@ -81,6 +83,8 @@ class AuthController extends Controller
         
         if ($user->role === 'admin') {
             return redirect()->route('admin.dashboard')->with('success', 'Login successful!');
+        } elseif ($user->role === 'nail_artist') {
+            return redirect()->route('nail-artist.dashboard')->with('success', 'Login successful!');
         }
         
         return redirect()->route('dashboard')->with('success', 'Login successful!');

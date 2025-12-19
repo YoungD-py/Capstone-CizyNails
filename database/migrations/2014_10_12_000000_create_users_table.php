@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['admin', 'customer'])->default('customer');
+            $table->enum('role', ['admin', 'customer', 'nail_artist'])->default('customer');
             $table->string('google_id')->nullable()->unique();
             $table->rememberToken();
             $table->timestamps();

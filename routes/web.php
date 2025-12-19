@@ -5,6 +5,7 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\CustomerDashboardController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\NailArtistDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,4 +41,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/services', [AdminDashboardController::class, 'services'])->name('admin.services');
     Route::get('/schedules', [AdminDashboardController::class, 'schedules'])->name('admin.schedules');
     Route::get('/customers', [AdminDashboardController::class, 'customers'])->name('admin.customers');
+});
+
+Route::middleware(['auth', 'nail_artist'])->prefix('nail-artist')->group(function () {
+    Route::get('/dashboard', [NailArtistDashboardController::class, 'index'])->name('nail-artist.dashboard');
+    Route::get('/bookings', [NailArtistDashboardController::class, 'bookings'])->name('nail-artist.bookings');
+    Route::post('/bookings/{booking}/status', [NailArtistDashboardController::class, 'updateStatus'])->name('nail-artist.update-status');
 });
