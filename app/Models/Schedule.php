@@ -10,15 +10,11 @@ class Schedule extends Model
     use HasFactory;
 
     protected $fillable = [
-        'service_id',
-        'day_of_week',
-        'start_time',
-        'end_time',
-        'is_available',
+        'date',
+        'time_slot',
+        'nails_art_booked',
+        'eyelash_booked',
     ];
 
-    public function service()
-    {
-        return $this->belongsTo(Service::class);
-    }
+    // This model tracks per-date and per-time slot capacity, not per-service relations
 }

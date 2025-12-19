@@ -12,6 +12,42 @@ use Illuminate\Support\Facades\Mail;
 
 class BookingController extends Controller
 {
+    private function ensureDailySchedules(string $date): void
+    {
+        // Generate default time slots if none exist for the given date
+        $existingCount = \App\Models\Schedule::where('date', $date)->count();
+        if ($existingCount > 0) {
+            return;
+        }
+
+        // Business hours: 10:00 - 20:00, interval 60 minutes
+        $start = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $date . ' 10:00');
+        $end = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $date . ' 20:00');
+
+        $slots = [];
+        $cursor = $start->copy();
+        while ($cursor->lte($end)) {
+            $slots[] = [
+                'date' => $date,
+                'time_slot' => $cursor->format('H:i:s'),
+                'nails_art_booked' => 0,
+                'eyelash_booked' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+            $cursor->addMinutes(60);
+        }
+
+        if (!empty($slots)) {
+            // Avoid unique constraint conflicts if parallel requests happen
+            foreach ($slots as $slot) {
+                \App\Models\Schedule::firstOrCreate(
+                    ['date' => $slot['date'], 'time_slot' => $slot['time_slot']],
+                    ['nails_art_booked' => 0, 'eyelash_booked' => 0]
+                );
+            }
+        }
+    }
 
     public function store(StoreBookingRequest $request)
     {
@@ -40,8 +76,11 @@ class BookingController extends Controller
                 ], 422);
             }
 
+            // Ensure schedules exist for the selected date
+            $this->ensureDailySchedules($validated['booking_date']);
+
             $schedule = \App\Models\Schedule::where('date', $validated['booking_date'])
-                ->where('time_slot', $validated['booking_time'])
+                ->where('time_slot', \Carbon\Carbon::createFromFormat('H:i', $validated['booking_time'])->format('H:i:s'))
                 ->first();
 
             if (!$schedule) {
@@ -175,7 +214,12 @@ class BookingController extends Controller
             $service = \App\Models\Service::find($validated['service_id']);
             $date = $validated['date'];
 
-            $schedules = \App\Models\Schedule::where('date', $date)->get();
+            // Ensure schedules are generated for this date
+            $this->ensureDailySchedules($date);
+
+            $schedules = \App\Models\Schedule::where('date', $date)
+                ->orderBy('time_slot')
+                ->get();
 
             if ($schedules->isEmpty()) {
                 return response()->json(['times' => []]);
