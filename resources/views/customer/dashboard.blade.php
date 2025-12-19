@@ -302,52 +302,56 @@
                 })
                 .catch(error => {
                     alert('Error cancelling appointment');
-
-                            function retryPayment(bookingId) {
-                                fetch(`/api/bookings/${bookingId}/retry-payment`, {
-                                    method: 'POST',
-                                    headers: {
-                                        'Accept': 'application/json',
-                                        'Content-Type': 'application/json',
-                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                        'X-Requested-With': 'XMLHttpRequest',
-                                    },
-                                    credentials: 'include'
-                                })
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.snap_token) {
-                                        snap.pay(data.snap_token, {
-                                            onSuccess: function(result) {
-                                                console.log('Payment success:', result);
-                                                alert('Payment successful! Your booking is confirmed.');
-                                                location.reload();
-                                            },
-                                            onPending: function(result) {
-                                                console.log('Payment pending:', result);
-                                                alert('Payment is being processed. Please wait for confirmation.');
-                                                location.reload();
-                                            },
-                                            onError: function(result) {
-                                                console.log('Payment error:', result);
-                                                alert('Payment failed. Please try again.');
-                                            },
-                                            onClose: function() {
-                                                console.log('Payment dialog closed');
-                                            }
-                                        });
-                                    } else {
-                                        alert('Error: ' + (data.message || 'Failed to initiate payment'));
-                                    }
-                                })
-                                .catch(error => {
-                                    alert('Error initiating payment');
-                                    console.error(error);
-                                });
-                            }
                     console.error(error);
                 });
             }
+        }
+
+        function retryPayment(bookingId) {
+            fetch(`/api/bookings/${bookingId}/retry-payment`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.snap_token) {
+                    if (!window.snap || typeof window.snap.pay !== 'function') {
+                        alert('Payment UI failed to load. Please refresh and try again.');
+                        return;
+                    }
+                    snap.pay(data.snap_token, {
+                        onSuccess: function(result) {
+                            console.log('Payment success:', result);
+                            alert('Payment successful! Your booking is confirmed.');
+                            location.reload();
+                        },
+                        onPending: function(result) {
+                            console.log('Payment pending:', result);
+                            alert('Payment is being processed. Please wait for confirmation.');
+                            location.reload();
+                        },
+                        onError: function(result) {
+                            console.log('Payment error:', result);
+                            alert('Payment failed. Please try again.');
+                        },
+                        onClose: function() {
+                            console.log('Payment dialog closed');
+                        }
+                    });
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to initiate payment'));
+                }
+            })
+            .catch(error => {
+                alert('Error initiating payment');
+                console.error(error);
+            });
         }
     </script>
 </body>
