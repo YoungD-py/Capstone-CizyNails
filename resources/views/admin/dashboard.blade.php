@@ -82,25 +82,34 @@
                                 <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Service</th>
                                 <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Date & Time</th>
                                 <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Payment</th>
                                 <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Price</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
                             @forelse($recentBookings as $booking)
                                 <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->user->name }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                        <div class="font-semibold">{{ $booking->user->name }}</div>
+                                        <div class="text-gray-500 text-xs">{{ $booking->user->email }}</div>
+                                    </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->service->name }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->booking_date->format('M d, Y') }} at {{ $booking->booking_time }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->booking_date->format('M d, Y') }} <br><span class="text-gray-600">{{ $booking->booking_time }}</span></td>
                                     <td class="px-6 py-4 text-sm">
-                                        <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $booking->status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                        <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $booking->status === 'confirmed' ? 'bg-green-100 text-green-800' : ($booking->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
                                             {{ ucfirst($booking->status) }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm font-semibold text-pink-600">${{ number_format($booking->service->price, 2) }}</td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $booking->payment_status === 'paid' ? 'bg-blue-100 text-blue-800' : ($booking->payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">
+                                            {{ ucfirst($booking->payment_status) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm font-semibold text-pink-600">Rp.{{ number_format($booking->price, 0) }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">No bookings yet</td>
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">No bookings yet</td>
                                 </tr>
                             @endforelse
                         </tbody>

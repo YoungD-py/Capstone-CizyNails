@@ -46,6 +46,11 @@ class AuthController extends Controller
         }
 
         Auth::login($user);
+        
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard')->with('success', 'Registration successful!');
+        }
+        
         return redirect()->route('dashboard')->with('success', 'Registration successful!');
     }
 
@@ -73,6 +78,11 @@ class AuthController extends Controller
         }
 
         Auth::login($user);
+        
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard')->with('success', 'Login successful!');
+        }
+        
         return redirect()->route('dashboard')->with('success', 'Login successful!');
     }
 

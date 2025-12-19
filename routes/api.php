@@ -47,6 +47,7 @@ Route::middleware('auth')->group(function () {
     
     // Booking routes
     Route::post('/bookings', [BookingController::class, 'store']);
+    Route::get('/bookings/{booking}', [BookingController::class, 'show']);
     Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel']);
     
     Route::middleware('admin')->group(function () {

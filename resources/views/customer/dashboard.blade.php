@@ -73,7 +73,7 @@
                                         📅 {{ $booking->booking_date->format('M d, Y') }} at {{ $booking->booking_time }}
                                     </p>
                                     <p class="text-gray-600 text-sm">
-                                        ⏱️ {{ $booking->service->duration }} minutes
+                                        ⏱️ {{ $booking->total_duration_minutes }} minutes
                                     </p>
                                     @if($booking->notes)
                                         <p class="text-gray-600 text-sm mt-2">
@@ -82,7 +82,7 @@
                                     @endif
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-pink-600 font-bold text-lg">${{ number_format($booking->service->price, 2) }}</p>
+                                    <p class="text-pink-600 font-bold text-lg">Rp.{{ number_format($booking->price, 0) }}</p>
                                     <!-- Added payment_status display -->
                                     <span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
                                         {{ ucfirst($booking->status) }}
@@ -123,7 +123,7 @@
                                     </p>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-pink-600 font-bold">${{ number_format($booking->service->price, 2) }}</p>
+                                    <p class="text-pink-600 font-bold">Rp.{{ number_format($booking->price, 0) }}</p>
                                     <span class="inline-block mt-2 px-3 py-1 bg-gray-100 text-gray-800 text-sm rounded-full">
                                         Completed
                                     </span>
@@ -164,10 +164,12 @@
     <script>
         function openBookingDetail(bookingId) {
             fetch(`/api/bookings/${bookingId}`, {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-                    'Content-Type': 'application/json',
-                }
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'include'
             })
             .then(response => response.json())
             .then(data => {
@@ -198,7 +200,7 @@
                             </div>
                             <div>
                                 <p class="text-gray-600 text-sm">Price</p>
-                                <p class="text-lg font-semibold text-pink-600">$${parseFloat(booking.price).toFixed(2)}</p>
+                                <p class="text-lg font-semibold text-pink-600">Rp.${Math.round(parseFloat(booking.price)).toLocaleString('id-ID')}</p>
                             </div>
                         </div>
 
@@ -281,9 +283,12 @@
                 fetch(`/api/bookings/${bookingId}/cancel`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                        'Accept': 'application/json',
                         'Content-Type': 'application/json',
-                    }
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'include'
                 })
                 .then(response => response.json())
                 .then(data => {
