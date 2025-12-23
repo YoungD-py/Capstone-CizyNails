@@ -63,6 +63,7 @@
                 <p class="text-blue-800 text-sm font-semibold mb-2">Demo Credentials:</p>
                 <p class="text-blue-700 text-sm"><strong>Customer:</strong> user@cizy.com / user123</p>
                 <p class="text-blue-700 text-sm"><strong>Admin:</strong> admin@cizy.com / admin123</p>
+                <p class="text-blue-700 text-sm"><strong>NailArtist:</strong> cizynails@cizynails.com / cizynails123</p>
             </div>
         </div>
     </div>
