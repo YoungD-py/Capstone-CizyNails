@@ -134,6 +134,7 @@
                         <option value="">Select Type</option>
                         <option value="nails_art">Nails Art</option>
                         <option value="eyelash">Eyelash</option>
+                        <option value="other">Other</option>
                     </select>
                 </div>
 

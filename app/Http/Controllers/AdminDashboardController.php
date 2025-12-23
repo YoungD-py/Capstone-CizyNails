@@ -143,7 +143,7 @@ class AdminDashboardController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:services,name',
             'description' => 'nullable|string|max:1000',
-            'type' => 'required|in:nails_art,eyelash',
+            'type' => 'required|in:nails_art,eyelash,other',
             'subtype' => 'nullable|string|in:natural,extension',
             'duration_minutes' => 'required|integer|min:15|max:480',
             'staff_count' => 'required|integer|min:1|max:10',
@@ -163,7 +163,7 @@ class AdminDashboardController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:services,name,' . $service->id,
             'description' => 'nullable|string|max:1000',
-            'type' => 'required|in:nails_art,eyelash',
+            'type' => 'required|in:nails_art,eyelash,other',
             'subtype' => 'nullable|string|in:natural,extension',
             'duration_minutes' => 'required|integer|min:15|max:480',
             'staff_count' => 'required|integer|min:1|max:10',
