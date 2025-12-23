@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Bookings - Cizy Nails Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ asset('js/toast.js') }}"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -183,15 +184,15 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('Payment verified successfully!');
-                        location.reload();
+                        showToast('Payment verified successfully!', 'success');
+                        setTimeout(() => location.reload(), 1000);
                     } else {
-                        alert('Error: ' + (data.message || 'Failed to verify payment'));
+                        showToast('Error: ' + (data.message || 'Failed to verify payment'), 'error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error verifying payment');
+                    showToast('Error verifying payment', 'error');
                 });
             }
         }
@@ -208,15 +209,15 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('Payment rejected!');
-                        location.reload();
+                        showToast('Payment rejected!', 'warning');
+                        setTimeout(() => location.reload(), 1000);
                     } else {
-                        alert('Error: ' + (data.message || 'Failed to reject payment'));
+                        showToast('Error: ' + (data.message || 'Failed to reject payment'), 'error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error rejecting payment');
+                    showToast('Error rejecting payment', 'error');
                 });
             }
         }
@@ -233,15 +234,15 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('Booking deleted');
-                        location.reload();
+                        showToast('Booking deleted successfully', 'success');
+                        setTimeout(() => location.reload(), 1000);
                     } else {
-                        alert('Error: ' + (data.message || 'Failed to delete booking'));
+                        showToast('Error: ' + (data.message || 'Failed to delete booking'), 'error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error deleting booking');
+                    showToast('Error deleting booking', 'error');
                 });
             }
         }
@@ -259,7 +260,7 @@
         function bulkDelete() {
             const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
             if (ids.length === 0) {
-                alert('Please select at least one booking to delete');
+                showToast('Please select at least one booking to delete', 'warning');
                 return;
             }
 
@@ -278,15 +279,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Selected bookings deleted');
-                    location.reload();
+                    showToast('Selected bookings deleted successfully', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert('Error: ' + (data.message || 'Failed to delete bookings'));
+                    showToast('Error: ' + (data.message || 'Failed to delete bookings'), 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error deleting bookings');
+                showToast('Error deleting bookings', 'error');
             });
         }
 
@@ -390,7 +391,7 @@
                 const data = Object.fromEntries(formData);
 
                 if (!data.booking_time) {
-                    alert('Please select a time slot');
+                    showToast('Please select a time slot', 'warning');
                     return;
                 }
 
@@ -408,17 +409,17 @@
                     const result = await response.json();
 
                     if (response.ok) {
-                        alert('Booking created successfully!');
+                        showToast('Booking created successfully!', 'success');
                         closeAddBookingModal();
-                        location.reload();
+                        setTimeout(() => location.reload(), 1000);
                     } else {
                         const errorMessage = result.message || 'Failed to create booking';
-                        const errorDetails = result.errors ? '\n\n' + Object.values(result.errors).flat().join('\n') : '';
-                        alert('Error: ' + errorMessage + errorDetails);
+                        const errorDetails = result.errors ? ': ' + Object.values(result.errors).flat().join(', ') : '';
+                        showToast('Error: ' + errorMessage + errorDetails, 'error', 5000);
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('Error creating booking');
+                    showToast('Error creating booking', 'error');
                 }
             });
         });

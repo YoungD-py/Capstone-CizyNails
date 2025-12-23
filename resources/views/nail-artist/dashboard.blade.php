@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nail Artist Dashboard - Cizy Nails</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ asset('js/toast.js') }}"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -136,15 +137,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
-                    window.location.reload();
+                    showToast(data.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert('Error updating status');
+                    showToast('Error updating status', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error updating status');
+                showToast('Error updating status', 'error');
             });
         }
     </script>

@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Added Midtrans Snap script -->
     <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
+    <script src="{{ asset('js/toast.js') }}"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -205,7 +206,7 @@
             e.preventDefault();
 
             if (!bookingTimeInput.value) {
-                alert('Please select a time slot');
+                showToast('Please select a time slot', 'warning');
                 return;
             }
 
@@ -216,7 +217,7 @@
             const now = new Date();
 
             if (selectedDateTime < now) {
-                alert('Tidak dapat melakukan booking pada waktu yang sudah berlalu. Silakan pilih waktu yang lain.');
+                showToast('Tidak dapat melakukan booking pada waktu yang sudah berlalu. Silakan pilih waktu yang lain.', 'warning');
                 return;
             }
 
@@ -254,11 +255,11 @@
                         },
                         onPending: function(result) {
                             console.log('[v0] Payment pending:', result);
-                            alert('Pembayaran sedang diproses. Silakan tunggu...');
+                            showToast('Pembayaran sedang diproses. Silakan tunggu...', 'info');
                         },
                         onError: function(result) {
                             console.log('[v0] Payment error:', result);
-                            alert('Pembayaran gagal. Silakan coba lagi.');
+                            showToast('Pembayaran gagal. Silakan coba lagi.', 'error');
                         },
                         onClose: function() {
                             console.log('[v0] Payment dialog closed');
@@ -266,13 +267,13 @@
                     });
                 } else {
                     const errorMessage = result.message || 'Failed to create booking';
-                    const errorDetails = result.errors ? '\n\n' + Object.values(result.errors).flat().join('\n') : '';
-                    alert('Error: ' + errorMessage + errorDetails);
+                    const errorDetails = result.errors ? ': ' + Object.values(result.errors).flat().join(', ') : '';
+                    showToast('Error: ' + errorMessage + errorDetails, 'error', 5000);
                     console.error('[v0] Booking error:', result);
                 }
             } catch (error) {
                 console.error('[v0] Error:', error);
-                alert('Error creating booking: ' + error.message);
+                showToast('Error creating booking: ' + error.message, 'error');
             }
         });
 

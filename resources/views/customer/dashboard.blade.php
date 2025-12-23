@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
+    <script src="{{ asset('js/toast.js') }}"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -307,7 +308,7 @@
                 document.getElementById('bookingDetailModal').classList.remove('hidden');
             })
             .catch(error => {
-                alert('Error loading booking details');
+                showToast('Error loading booking details', 'error');
                 console.error(error);
             });
         }
@@ -348,11 +349,11 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    alert('Appointment cancelled successfully');
-                    location.reload();
+                    showToast('Appointment cancelled successfully', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 })
                 .catch(error => {
-                    alert('Error cancelling appointment');
+                    showToast('Error cancelling appointment', 'error');
                     console.error(error);
                 });
             }
@@ -373,34 +374,34 @@
             .then(data => {
                 if (data.snap_token) {
                     if (!window.snap || typeof window.snap.pay !== 'function') {
-                        alert('Payment UI failed to load. Please refresh and try again.');
+                        showToast('Payment UI failed to load. Please refresh and try again.', 'error');
                         return;
                     }
                     snap.pay(data.snap_token, {
                         onSuccess: function(result) {
                             console.log('Payment success:', result);
-                            alert('Payment successful! Your booking is confirmed.');
-                            location.reload();
+                            showToast('Payment successful! Your booking is confirmed.', 'success');
+                            setTimeout(() => location.reload(), 2000);
                         },
                         onPending: function(result) {
                             console.log('Payment pending:', result);
-                            alert('Payment is being processed. Please wait for confirmation.');
-                            location.reload();
+                            showToast('Payment is being processed. Please wait for confirmation.', 'info');
+                            setTimeout(() => location.reload(), 2000);
                         },
                         onError: function(result) {
                             console.log('Payment error:', result);
-                            alert('Payment failed. Please try again.');
+                            showToast('Payment failed. Please try again.', 'error');
                         },
                         onClose: function() {
                             console.log('Payment dialog closed');
                         }
                     });
                 } else {
-                    alert('Error: ' + (data.message || 'Failed to initiate payment'));
+                    showToast('Error: ' + (data.message || 'Failed to initiate payment'), 'error');
                 }
             })
             .catch(error => {
-                alert('Error initiating payment');
+                showToast('Error initiating payment', 'error');
                 console.error(error);
             });
         }
@@ -493,7 +494,7 @@
             const newTime = document.getElementById('rescheduleTime').value;
 
             if (!newTime) {
-                alert('Silakan pilih waktu baru untuk reschedule');
+                showToast('Silakan pilih waktu baru untuk reschedule', 'warning');
                 return;
             }
 
@@ -502,7 +503,7 @@
             const now = new Date();
 
             if (selectedDateTime < now) {
-                alert('Tidak dapat reschedule ke waktu yang sudah berlalu. Silakan pilih waktu yang lain.');
+                showToast('Tidak dapat reschedule ke waktu yang sudah berlalu. Silakan pilih waktu yang lain.', 'warning');
                 return;
             }
 
@@ -529,17 +530,17 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    alert('✅ ' + result.message);
+                    showToast('✅ ' + result.message, 'success');
                     closeRescheduleModal();
-                    location.reload();
+                    setTimeout(() => location.reload(), 1000);
                 } else {
                     const errorMessage = result.message || 'Gagal melakukan reschedule';
-                    const errorDetails = result.errors ? '\n\n' + Object.values(result.errors).flat().join('\n') : '';
-                    alert('Error: ' + errorMessage + errorDetails);
+                    const errorDetails = result.errors ? ': ' + Object.values(result.errors).flat().join(', ') : '';
+                    showToast('Error: ' + errorMessage + errorDetails, 'error', 5000);
                 }
             } catch (error) {
-                console.error('Error:', error);
-                alert('Terjadi kesalahan saat reschedule. Silakan coba lagi.');
+                console.error('Reschedule error:', error);
+                showToast('Terjadi kesalahan saat reschedule. Silakan coba lagi.', 'error');
             }
         });
     </script>
