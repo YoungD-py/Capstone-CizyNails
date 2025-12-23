@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Dashboard - Cizy Nails</title>
+    <script src="{{ asset('js/toast.js') }}"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
-    <script src="{{ asset('js/toast.js') }}"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -219,6 +219,15 @@
     </div>
 
     <script>
+        // Check if toast functions are loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof showToast === 'undefined' || typeof showConfirm === 'undefined') {
+                console.error('Toast/Confirm functions not loaded! Check toast.js');
+            } else {
+                console.log('Toast notification system loaded successfully');
+            }
+        });
+
         function openBookingDetail(bookingId) {
             fetch(`/api/bookings/${bookingId}`, {
                 method: 'GET',
@@ -336,7 +345,7 @@
         }
 
         function cancelBooking(bookingId) {
-            if (confirm('Are you sure you want to cancel this appointment?')) {
+            showConfirm('Are you sure you want to cancel this appointment?', () => {
                 fetch(`/api/bookings/${bookingId}/cancel`, {
                     method: 'POST',
                     headers: {
