@@ -138,6 +138,58 @@ class AdminDashboardController extends Controller
         return view('admin.services', compact('services'));
     }
 
+    public function storeService(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:services,name',
+            'description' => 'nullable|string|max:1000',
+            'type' => 'required|in:nails_art,eyelash',
+            'subtype' => 'nullable|string|in:natural,extension',
+            'duration_minutes' => 'required|integer|min:15|max:480',
+            'staff_count' => 'required|integer|min:1|max:10',
+            'price' => 'required|numeric|min:0|max:99999999.99',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $validated['is_active'] = $request->has('is_active');
+
+        $service = Service::create($validated);
+
+        return redirect()->route('admin.services')->with('success', 'Service created successfully!');
+    }
+
+    public function updateService(Request $request, Service $service)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:services,name,' . $service->id,
+            'description' => 'nullable|string|max:1000',
+            'type' => 'required|in:nails_art,eyelash',
+            'subtype' => 'nullable|string|in:natural,extension',
+            'duration_minutes' => 'required|integer|min:15|max:480',
+            'staff_count' => 'required|integer|min:1|max:10',
+            'price' => 'required|numeric|min:0|max:99999999.99',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $validated['is_active'] = $request->has('is_active');
+
+        $service->update($validated);
+
+        return redirect()->route('admin.services')->with('success', 'Service updated successfully!');
+    }
+
+    public function deleteService(Service $service)
+    {
+        // Check if service has active bookings
+        if ($service->bookings()->where('status', '!=', 'cancelled')->exists()) {
+            return back()->with('error', 'Cannot delete service with active bookings!');
+        }
+
+        $service->delete();
+
+        return redirect()->route('admin.services')->with('success', 'Service deleted successfully!');
+    }
+
     public function schedules()
     {
         // Get schedules for next 7 days

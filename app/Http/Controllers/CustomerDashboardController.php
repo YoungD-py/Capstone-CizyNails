@@ -66,7 +66,7 @@ class CustomerDashboardController extends Controller
     public function bookingForm(Request $request)
     {
         $date = $request->query('date');
-        $services = \App\Models\Service::all();
+        $services = \App\Models\Service::where('is_active', true)->get();
         
         return view('customer.booking', compact('date', 'services'));
     }

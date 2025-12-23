@@ -11,9 +11,13 @@ class Service extends Model
 
     protected $fillable = [
         'name',
+        'type',
+        'subtype',
         'description',
-        'duration',
+        'duration_minutes',
+        'staff_count',
         'price',
+        'is_active',
     ];
 
     public function bookings()

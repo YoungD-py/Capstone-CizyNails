@@ -39,6 +39,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('/bookings/{booking}/reject-payment', [AdminDashboardController::class, 'rejectPayment'])->name('admin.reject-payment');
     Route::delete('/bookings/{booking}', [AdminDashboardController::class, 'destroy'])->name('admin.bookings.destroy');
     Route::get('/services', [AdminDashboardController::class, 'services'])->name('admin.services');
+    Route::post('/services', [AdminDashboardController::class, 'storeService'])->name('admin.services.store');
+    Route::put('/services/{service}', [AdminDashboardController::class, 'updateService'])->name('admin.services.update');
+    Route::delete('/services/{service}', [AdminDashboardController::class, 'deleteService'])->name('admin.services.destroy');
     Route::get('/schedules', [AdminDashboardController::class, 'schedules'])->name('admin.schedules');
     Route::get('/customers', [AdminDashboardController::class, 'customers'])->name('admin.customers');
 });
