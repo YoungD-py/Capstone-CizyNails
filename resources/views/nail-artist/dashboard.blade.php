@@ -49,12 +49,12 @@
                     <p class="text-3xl font-bold text-pink-600">{{ $todayBookings }}</p>
                 </div>
                 <div class="bg-white rounded-lg shadow-md p-6">
-                    <p class="text-gray-600 text-sm">Pending Bookings</p>
-                    <p class="text-3xl font-bold text-yellow-600">{{ $pendingBookings }}</p>
-                </div>
-                <div class="bg-white rounded-lg shadow-md p-6">
                     <p class="text-gray-600 text-sm">Completed Today</p>
                     <p class="text-3xl font-bold text-green-600">{{ $completedToday }}</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <p class="text-gray-600 text-sm">Pending Bookings</p>
+                    <p class="text-3xl font-bold text-yellow-600">{{ $pendingBookings }}</p>
                 </div>
             </div>
 
