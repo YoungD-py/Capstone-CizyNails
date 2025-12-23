@@ -51,7 +51,7 @@
                 <!-- Date Selection -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-900 mb-2">Select Date</label>
-                    <input type="date" id="bookingDate" name="booking_date" value="{{ $date }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                    <input type="date" id="bookingDate" name="booking_date" value="{{ $date }}" min="{{ date('Y-m-d') }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                 </div>
 
                 <!-- Time Selection -->
@@ -206,6 +206,17 @@
 
             if (!bookingTimeInput.value) {
                 alert('Please select a time slot');
+                return;
+            }
+
+            // Validate that the selected date and time is not in the past
+            const selectedDate = dateInput.value;
+            const selectedTime = bookingTimeInput.value;
+            const selectedDateTime = new Date(`${selectedDate}T${selectedTime}:00`);
+            const now = new Date();
+
+            if (selectedDateTime < now) {
+                alert('Tidak dapat melakukan booking pada waktu yang sudah berlalu. Silakan pilih waktu yang lain.');
                 return;
             }
 

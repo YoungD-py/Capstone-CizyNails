@@ -54,6 +54,15 @@ class BookingController extends Controller
         try {
             $validated = $request->validated();
 
+            // Check if the booking date and time has already passed
+            $bookingDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $validated['booking_date'] . ' ' . $validated['booking_time']);
+            if ($bookingDateTime->isPast()) {
+                return response()->json([
+                    'message' => 'Tidak dapat melakukan booking pada waktu yang sudah berlalu. Silakan pilih waktu yang lain.',
+                    'errors' => ['booking_time' => ['Waktu booking sudah berlalu. Silakan pilih waktu yang masih tersedia.']]
+                ], 422);
+            }
+
             // Check if time slot is available
             $existingBooking = Booking::where('service_id', $validated['service_id'])
                 ->where('booking_date', $validated['booking_date'])
@@ -269,20 +278,30 @@ class BookingController extends Controller
             }
 
             $times = [];
+            $now = \Carbon\Carbon::now();
+            
             foreach ($schedules as $schedule) {
+                $timeValue = $schedule->time_slot;
+                if (is_object($timeValue)) {
+                    $formattedTime = $timeValue->format('H:i');
+                } else {
+                    $formattedTime = \Carbon\Carbon::createFromFormat('H:i:s', $timeValue)->format('H:i');
+                }
+
+                // Create datetime for this time slot
+                $slotDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $formattedTime);
+                
+                // Skip time slots that have already passed
+                if ($slotDateTime->isPast()) {
+                    continue;
+                }
+
                 $isAvailable = false;
 
                 if ($service->type === 'nails_art') {
                     $isAvailable = $schedule->nails_art_booked < 2;
                 } else {
                     $isAvailable = $schedule->eyelash_booked < 1;
-                }
-
-                $timeValue = $schedule->time_slot;
-                if (is_object($timeValue)) {
-                    $formattedTime = $timeValue->format('H:i');
-                } else {
-                    $formattedTime = \Carbon\Carbon::createFromFormat('H:i:s', $timeValue)->format('H:i');
                 }
 
                 $times[] = [
