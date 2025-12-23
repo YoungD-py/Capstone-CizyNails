@@ -316,4 +316,129 @@ class BookingController extends Controller
             return response()->json(['error' => 'Error loading available times'], 500);
         }
     }
+
+    public function reschedule(Booking $booking, Request $request)
+    {
+        try {
+            // Check authorization
+            if ($booking->user_id !== $request->user()->id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            // Check if booking can be rescheduled
+            if ($booking->status === 'cancelled') {
+                return response()->json([
+                    'message' => 'Booking yang sudah dibatalkan tidak dapat dijadwal ulang.',
+                    'errors' => ['status' => ['Booking telah dibatalkan']]
+                ], 422);
+            }
+
+            if ($booking->status === 'completed') {
+                return response()->json([
+                    'message' => 'Booking yang sudah selesai tidak dapat dijadwal ulang.',
+                    'errors' => ['status' => ['Booking telah selesai']]
+                ], 422);
+            }
+
+            // Check reschedule limit
+            if ($booking->reschedule_count >= 1) {
+                return response()->json([
+                    'message' => 'Anda hanya dapat melakukan reschedule sekali. Batas reschedule sudah tercapai.',
+                    'errors' => ['reschedule_count' => ['Batas reschedule sudah tercapai']]
+                ], 422);
+            }
+
+            $validated = $request->validate([
+                'booking_date' => 'required|date|after_or_equal:today|before_or_equal:' . now()->addMonths(3)->toDateString(),
+                'booking_time' => 'required|date_format:H:i',
+            ]);
+
+            // Check if the new booking date and time has already passed
+            $newBookingDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $validated['booking_date'] . ' ' . $validated['booking_time']);
+            if ($newBookingDateTime->isPast()) {
+                return response()->json([
+                    'message' => 'Tidak dapat reschedule ke waktu yang sudah berlalu.',
+                    'errors' => ['booking_time' => ['Waktu yang dipilih sudah berlalu']]
+                ], 422);
+            }
+
+            $service = $booking->service;
+            
+            // Get old schedule to release the slot
+            $oldSchedule = \App\Models\Schedule::where('date', $booking->booking_date)
+                ->where('time_slot', \Carbon\Carbon::createFromFormat('H:i', $booking->booking_time)->format('H:i:s'))
+                ->first();
+
+            // Ensure schedules exist for the new date
+            $this->ensureDailySchedules($validated['booking_date']);
+
+            // Check new schedule availability
+            $newSchedule = \App\Models\Schedule::where('date', $validated['booking_date'])
+                ->where('time_slot', \Carbon\Carbon::createFromFormat('H:i', $validated['booking_time'])->format('H:i:s'))
+                ->first();
+
+            if (!$newSchedule) {
+                return response()->json([
+                    'message' => 'Jadwal tidak tersedia untuk tanggal tersebut.',
+                    'errors' => ['booking_date' => ['Jadwal tidak tersedia']]
+                ], 422);
+            }
+
+            // Check capacity for new schedule
+            if ($service->type === 'nails_art' && $newSchedule->nails_art_booked >= 2) {
+                return response()->json([
+                    'message' => 'Slot waktu ini sudah penuh untuk layanan Nails Art.',
+                    'errors' => ['booking_time' => ['Slot waktu penuh']]
+                ], 422);
+            }
+
+            if ($service->type === 'eyelash' && $newSchedule->eyelash_booked >= 1) {
+                return response()->json([
+                    'message' => 'Slot waktu ini sudah penuh untuk layanan Eyelash.',
+                    'errors' => ['booking_time' => ['Slot waktu penuh']]
+                ], 422);
+            }
+
+            // Release old schedule slot
+            if ($oldSchedule) {
+                if ($service->type === 'nails_art') {
+                    $oldSchedule->decrement('nails_art_booked');
+                } else {
+                    $oldSchedule->decrement('eyelash_booked');
+                }
+            }
+
+            // Book new schedule slot
+            if ($service->type === 'nails_art') {
+                $newSchedule->increment('nails_art_booked');
+            } else {
+                $newSchedule->increment('eyelash_booked');
+            }
+
+            // Update booking
+            $booking->update([
+                'booking_date' => $validated['booking_date'],
+                'booking_time' => $validated['booking_time'],
+                'reschedule_count' => $booking->reschedule_count + 1,
+            ]);
+
+            return response()->json([
+                'message' => 'Booking berhasil dijadwal ulang!',
+                'booking' => $booking->fresh()->load('service'),
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Reschedule error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat reschedule',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
+

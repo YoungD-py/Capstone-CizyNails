@@ -95,6 +95,14 @@
                                         </button>
                                     @endif
                                     
+                                    @if($booking->reschedule_count < 1 && $booking->status !== 'cancelled' && $booking->status !== 'completed')
+                                        <button onclick="openRescheduleModal({{ $booking->id }}, '{{ $booking->service->id }}', '{{ $booking->booking_date->format('Y-m-d') }}', '{{ $booking->booking_time }}')" class="block mt-2 w-full bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm font-semibold">
+                                            📅 Reschedule
+                                        </button>
+                                    @elseif($booking->reschedule_count >= 1)
+                                        <span class="block mt-2 text-xs text-gray-500 italic">Reschedule sudah digunakan</span>
+                                    @endif
+                                    
                                     <button onclick="cancelBooking({{ $booking->id }})" class="block mt-2 w-full text-red-600 hover:text-red-800 text-sm">
                                         Cancel Booking
                                     </button>
@@ -162,6 +170,49 @@
                         Close
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reschedule Modal -->
+    <div id="rescheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Reschedule Appointment</h2>
+                    <button onclick="closeRescheduleModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                </div>
+                
+                <div class="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-sm text-yellow-800">⚠️ <strong>Perhatian:</strong> Anda hanya dapat melakukan reschedule <strong>sekali</strong> untuk setiap booking.</p>
+                </div>
+
+                <form id="rescheduleForm" class="space-y-4">
+                    <input type="hidden" id="rescheduleBookingId">
+                    <input type="hidden" id="rescheduleServiceId">
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-900 mb-2">Tanggal Baru</label>
+                        <input type="date" id="rescheduleDate" min="{{ date('Y-m-d') }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-900 mb-2">Waktu Baru</label>
+                        <div id="rescheduleTimeSlots" class="grid grid-cols-4 gap-2">
+                            <p class="text-gray-500 text-sm col-span-4">Pilih tanggal terlebih dahulu</p>
+                        </div>
+                        <input type="hidden" id="rescheduleTime">
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                            Konfirmasi Reschedule
+                        </button>
+                        <button type="button" onclick="closeRescheduleModal()" class="flex-1 bg-gray-300 text-gray-800 px-4 py-3 rounded-lg hover:bg-gray-400 font-semibold">
+                            Batal
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -353,6 +404,144 @@
                 console.error(error);
             });
         }
+
+        // Reschedule functions
+        function openRescheduleModal(bookingId, serviceId, currentDate, currentTime) {
+            document.getElementById('rescheduleBookingId').value = bookingId;
+            document.getElementById('rescheduleServiceId').value = serviceId;
+            document.getElementById('rescheduleDate').value = currentDate;
+            document.getElementById('rescheduleModal').classList.remove('hidden');
+            
+            // Load available times for current date
+            loadRescheduleAvailableTimes();
+        }
+
+        function closeRescheduleModal() {
+            document.getElementById('rescheduleModal').classList.add('hidden');
+            document.getElementById('rescheduleForm').reset();
+        }
+
+        async function loadRescheduleAvailableTimes() {
+            const serviceId = document.getElementById('rescheduleServiceId').value;
+            const date = document.getElementById('rescheduleDate').value;
+            const timeSlotsDiv = document.getElementById('rescheduleTimeSlots');
+            const rescheduleTimeInput = document.getElementById('rescheduleTime');
+
+            if (!serviceId || !date) {
+                timeSlotsDiv.innerHTML = '<p class="text-gray-500 text-sm col-span-4">Pilih tanggal terlebih dahulu</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/bookings/available-times?service_id=${serviceId}&date=${date}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.times || data.times.length === 0) {
+                    timeSlotsDiv.innerHTML = '<p class="text-gray-500 text-sm col-span-4">Tidak ada waktu tersedia untuk tanggal ini</p>';
+                    return;
+                }
+
+                timeSlotsDiv.innerHTML = data.times.map(slot => `
+                    <button type="button" 
+                            class="reschedule-time-slot px-3 py-2 rounded-lg border-2 transition ${slot.available ? 'border-gray-300 hover:border-blue-600 cursor-pointer' : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'}"
+                            data-time="${slot.time}"
+                            ${!slot.available ? 'disabled' : ''}>
+                        ${slot.time}
+                    </button>
+                `).join('');
+
+                // Add click handlers to time slots
+                document.querySelectorAll('.reschedule-time-slot:not(:disabled)').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        document.querySelectorAll('.reschedule-time-slot').forEach(b => b.classList.remove('border-blue-600', 'bg-blue-50'));
+                        btn.classList.add('border-blue-600', 'bg-blue-50');
+                        rescheduleTimeInput.value = btn.dataset.time;
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading times:', error);
+                timeSlotsDiv.innerHTML = '<p class="text-red-500 text-sm col-span-4">Error loading available times. Please try again.</p>';
+            }
+        }
+
+        // Event listener for reschedule date change
+        document.addEventListener('DOMContentLoaded', function() {
+            const rescheduleDate = document.getElementById('rescheduleDate');
+            if (rescheduleDate) {
+                rescheduleDate.addEventListener('change', loadRescheduleAvailableTimes);
+            }
+        });
+
+        // Handle reschedule form submission
+        document.getElementById('rescheduleForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const bookingId = document.getElementById('rescheduleBookingId').value;
+            const newDate = document.getElementById('rescheduleDate').value;
+            const newTime = document.getElementById('rescheduleTime').value;
+
+            if (!newTime) {
+                alert('Silakan pilih waktu baru untuk reschedule');
+                return;
+            }
+
+            // Validate that the selected date and time is not in the past
+            const selectedDateTime = new Date(`${newDate}T${newTime}:00`);
+            const now = new Date();
+
+            if (selectedDateTime < now) {
+                alert('Tidak dapat reschedule ke waktu yang sudah berlalu. Silakan pilih waktu yang lain.');
+                return;
+            }
+
+            if (!confirm('Apakah Anda yakin ingin reschedule appointment ini? Anda hanya dapat reschedule sekali.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/bookings/${bookingId}/reschedule`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        booking_date: newDate,
+                        booking_time: newTime
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('✅ ' + result.message);
+                    closeRescheduleModal();
+                    location.reload();
+                } else {
+                    const errorMessage = result.message || 'Gagal melakukan reschedule';
+                    const errorDetails = result.errors ? '\n\n' + Object.values(result.errors).flat().join('\n') : '';
+                    alert('Error: ' + errorMessage + errorDetails);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat reschedule. Silakan coba lagi.');
+            }
+        });
     </script>
 </body>
 </html>

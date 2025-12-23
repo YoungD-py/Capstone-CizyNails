@@ -21,6 +21,7 @@ class Booking extends Model
         'notes',
         'payment_status',
         'transaction_id', // Added transaction_id for Midtrans
+        'reschedule_count', // Track reschedule attempts
     ];
 
     protected $casts = [

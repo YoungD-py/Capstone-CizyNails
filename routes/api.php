@@ -50,6 +50,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
     Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel']);
     Route::post('/bookings/{booking}/retry-payment', [BookingController::class, 'retryPayment']);
+    Route::post('/bookings/{booking}/reschedule', [BookingController::class, 'reschedule']);
     
     Route::middleware('admin')->group(function () {
         Route::post('/services', [ServiceController::class, 'store']);
