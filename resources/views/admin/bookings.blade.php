@@ -118,7 +118,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-sm">
-                                    <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $booking->payment_status === 'paid' ? 'bg-blue-100 text-blue-800' : ($booking->payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
+                                    <span class="px-3 py-1 rounded-full text-sm font-semibold {{ in_array($booking->payment_status, ['paid', 'verified']) ? 'bg-blue-100 text-blue-800' : ($booking->payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
                                         {{ ucfirst($booking->payment_status) }}
                                     </span>
                                 </td>
@@ -379,43 +379,48 @@
             }
         }
 
-        document.getElementById('addBookingForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        document.addEventListener('DOMContentLoaded', () => {
+            const addBookingForm = document.getElementById('addBookingForm');
+            if (!addBookingForm) return;
 
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData);
+            addBookingForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
 
-            if (!data.booking_time) {
-                alert('Please select a time slot');
-                return;
-            }
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData);
 
-            try {
-                const response = await fetch('/admin/bookings/create', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    alert('Booking created successfully!');
-                    closeAddBookingModal();
-                    location.reload();
-                } else {
-                    const errorMessage = result.message || 'Failed to create booking';
-                    const errorDetails = result.errors ? '\n\n' + Object.values(result.errors).flat().join('\n') : '';
-                    alert('Error: ' + errorMessage + errorDetails);
+                if (!data.booking_time) {
+                    alert('Please select a time slot');
+                    return;
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error creating booking');
-            }
+
+                try {
+                    const response = await fetch('/admin/bookings/create', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        alert('Booking created successfully!');
+                        closeAddBookingModal();
+                        location.reload();
+                    } else {
+                        const errorMessage = result.message || 'Failed to create booking';
+                        const errorDetails = result.errors ? '\n\n' + Object.values(result.errors).flat().join('\n') : '';
+                        alert('Error: ' + errorMessage + errorDetails);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error creating booking');
+                }
+            });
         });
     </script>
 

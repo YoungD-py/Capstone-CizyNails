@@ -20,6 +20,7 @@ class Booking extends Model
         'status',
         'notes',
         'payment_status',
+        'payment_verified_at',
         'transaction_id', // Added transaction_id for Midtrans
         'reschedule_count', // Track reschedule attempts
     ];

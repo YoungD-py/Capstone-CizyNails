@@ -291,7 +291,8 @@ class AdminDashboardController extends Controller
                 'price' => $service->price,
                 'notes' => $validated['notes'] ?? null,
                 'status' => 'confirmed',  // Auto-confirmed for admin booking
-                'payment_status' => 'paid',  // Already paid manually
+                'payment_status' => 'verified',  // Mark as verified since payment handled manually
+                'payment_verified_at' => now(),
                 'transaction_id' => 'MANUAL-' . time(),  // Manual transaction ID
             ]);
 
