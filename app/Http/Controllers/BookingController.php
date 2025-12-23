@@ -365,8 +365,9 @@ class BookingController extends Controller
             $service = $booking->service;
             
             // Get old schedule to release the slot
+            $oldBookingTime = is_string($booking->booking_time) ? $booking->booking_time : $booking->booking_time->format('H:i:s');
             $oldSchedule = \App\Models\Schedule::where('date', $booking->booking_date)
-                ->where('time_slot', \Carbon\Carbon::createFromFormat('H:i', $booking->booking_time)->format('H:i:s'))
+                ->where('time_slot', $oldBookingTime)
                 ->first();
 
             // Ensure schedules exist for the new date
