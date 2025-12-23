@@ -77,6 +77,102 @@ function getToastIcon(type) {
     return icons[type] || icons.info;
 }
 
+// Professional Confirm Dialog System
+window.showConfirm = function(message, onConfirm, onCancel = null, options = {}) {
+    const {
+        title = 'Confirmation',
+        confirmText = 'Yes',
+        cancelText = 'Cancel',
+        type = 'warning' // 'warning', 'danger', 'info'
+    } = options;
+
+    // Remove existing confirm modal if any
+    const existing = document.getElementById('confirm-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'confirm-modal';
+    modal.className = 'fixed inset-0 z-[10000] flex items-center justify-center';
+    modal.style.display = 'none';
+    
+    const colorClasses = {
+        warning: 'bg-yellow-500 hover:bg-yellow-600',
+        danger: 'bg-red-600 hover:bg-red-700',
+        info: 'bg-blue-600 hover:bg-blue-700'
+    };
+    
+    const iconClasses = {
+        warning: `<svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>`,
+        danger: `<svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>`,
+        info: `<svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>`
+    };
+    
+    modal.innerHTML = `
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all scale-95 opacity-0" id="confirm-dialog">
+            <div class="p-6">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        ${iconClasses[type] || iconClasses.warning}
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">${title}</h3>
+                        <p class="text-sm text-gray-600">${message}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 flex gap-3 justify-end rounded-b-lg">
+                <button id="confirm-cancel" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
+                    ${cancelText}
+                </button>
+                <button id="confirm-ok" class="px-4 py-2 text-sm font-medium text-white ${colorClasses[type]} rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors">
+                    ${confirmText}
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Show with animation
+    requestAnimationFrame(() => {
+        modal.style.display = 'flex';
+        requestAnimationFrame(() => {
+            const dialog = modal.querySelector('#confirm-dialog');
+            dialog.classList.remove('scale-95', 'opacity-0');
+            dialog.classList.add('scale-100', 'opacity-100');
+        });
+    });
+    
+    const closeModal = () => {
+        const dialog = modal.querySelector('#confirm-dialog');
+        dialog.classList.remove('scale-100', 'opacity-100');
+        dialog.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => modal.remove(), 200);
+    };
+    
+    modal.querySelector('#confirm-ok').onclick = () => {
+        closeModal();
+        if (onConfirm) onConfirm();
+    };
+    
+    modal.querySelector('#confirm-cancel').onclick = () => {
+        closeModal();
+        if (onCancel) onCancel();
+    };
+    
+    modal.querySelector('.bg-gray-500').onclick = () => {
+        closeModal();
+        if (onCancel) onCancel();
+    };
+};
+
 // Add CSS for toast animations
 if (!document.getElementById('toast-styles')) {
     const style = document.createElement('style');
@@ -87,6 +183,9 @@ if (!document.getElementById('toast-styles')) {
             border-radius: 0.5rem;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             transition: transform 0.3s ease-in-out;
+        }
+        #confirm-dialog {
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
         }
     `;
     document.head.appendChild(style);

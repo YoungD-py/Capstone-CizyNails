@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>All Bookings - Cizy Nails Artist</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ asset('js/toast.js') }}"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -140,31 +141,29 @@
     <script>
         function updateStatus(bookingId, status) {
             const statusText = status === 'completed' ? 'completed' : (status === 'cancelled' ? 'cancelled' : 'confirmed');
-            if (!confirm(`Are you sure you want to mark this booking as ${statusText}?`)) {
-                return;
-            }
-
-            fetch(`/nail-artist/bookings/${bookingId}/status`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ status: status })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    window.location.reload();
-                } else {
-                    alert('Error updating status');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error updating status');
-            });
+            showConfirm(`Are you sure you want to mark this booking as ${statusText}?`, () => {
+                fetch(`/nail-artist/bookings/${bookingId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ status: status })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        showToast('Error updating status', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error updating status', 'error');
+                });
+            }, null, { title: 'Update Booking Status', confirmText: 'Yes, Update', type: 'info' });
         }
     </script>
 </body>

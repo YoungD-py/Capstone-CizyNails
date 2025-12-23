@@ -356,7 +356,7 @@
                     showToast('Error cancelling appointment', 'error');
                     console.error(error);
                 });
-            }
+            }, null, { title: 'Cancel Appointment', confirmText: 'Yes, Cancel', type: 'danger' });
         }
 
         function retryPayment(bookingId) {
@@ -507,11 +507,8 @@
                 return;
             }
 
-            if (!confirm('Apakah Anda yakin ingin reschedule appointment ini? Anda hanya dapat reschedule sekali.')) {
-                return;
-            }
-
-            try {
+            showConfirm('Apakah Anda yakin ingin reschedule appointment ini? Anda hanya dapat reschedule sekali.', async () => {
+                try {
                 const response = await fetch(`/api/bookings/${bookingId}/reschedule`, {
                     method: 'POST',
                     headers: {
@@ -542,6 +539,7 @@
                 console.error('Reschedule error:', error);
                 showToast('Terjadi kesalahan saat reschedule. Silakan coba lagi.', 'error');
             }
+            }, null, { title: 'Reschedule Appointment', confirmText: 'Yes, Reschedule', type: 'warning' });
         });
     </script>
 </body>

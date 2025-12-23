@@ -122,11 +122,9 @@
 
     <script>
         function updateStatus(bookingId, status) {
-            if (!confirm(`Are you sure you want to mark this booking as ${status}?`)) {
-                return;
-            }
-
-            fetch(`/nail-artist/bookings/${bookingId}/status`, {
+            const statusText = status === 'completed' ? 'completed' : status === 'confirmed' ? 'confirmed' : status;
+            showConfirm(`Are you sure you want to mark this booking as ${statusText}?`, () => {
+                fetch(`/nail-artist/bookings/${bookingId}/status`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -147,6 +145,7 @@
                 console.error('Error:', error);
                 showToast('Error updating status', 'error');
             });
+            }, null, { title: 'Update Booking Status', confirmText: 'Yes, Update', type: 'info' });
         }
     </script>
 </body>

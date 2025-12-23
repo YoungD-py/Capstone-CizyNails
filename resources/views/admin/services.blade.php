@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Services - Cizy Nails Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ asset('js/toast.js') }}"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -97,10 +98,10 @@
                             <button onclick='editService(@json($service))' class="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
                                 Edit
                             </button>
-                            <form action="{{ route('admin.services.destroy', $service->id) }}" method="POST" class="flex-1" onsubmit="return confirm('Are you sure you want to delete this service?')">
+                            <form id="delete-form-{{ $service->id }}" action="{{ route('admin.services.destroy', $service->id) }}" method="POST" class="flex-1">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="w-full px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
+                                <button type="button" onclick="deleteService({{ $service->id }}, '{{ $service->name }}')" class="w-full px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
                                     Delete
                                 </button>
                             </form>
@@ -224,6 +225,17 @@
             
             toggleSubtype();
             document.getElementById('serviceModal').classList.remove('hidden');
+        }
+
+        function deleteService(serviceId, serviceName) {
+            showConfirm(
+                `Are you sure you want to delete the service "${serviceName}"? This action cannot be undone.`,
+                () => {
+                    document.getElementById('delete-form-' + serviceId).submit();
+                },
+                null,
+                { title: 'Delete Service', confirmText: 'Delete', type: 'danger' }
+            );
         }
     </script>
 </body>

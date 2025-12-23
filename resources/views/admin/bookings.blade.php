@@ -173,7 +173,7 @@
         }
 
         function verifyPayment(bookingId) {
-            if (confirm('Are you sure you want to verify this payment?')) {
+            showConfirm('Are you sure you want to verify this payment?', () => {
                 fetch(`/admin/bookings/${bookingId}/verify-payment`, {
                     method: 'POST',
                     headers: {
@@ -194,11 +194,11 @@
                     console.error('Error:', error);
                     showToast('Error verifying payment', 'error');
                 });
-            }
+            }, null, { title: 'Verify Payment', confirmText: 'Verify', type: 'info' });
         }
 
         function rejectPayment(bookingId) {
-            if (confirm('Are you sure you want to reject this payment?')) {
+            showConfirm('Are you sure you want to reject this payment?', () => {
                 fetch(`/admin/bookings/${bookingId}/reject-payment`, {
                     method: 'POST',
                     headers: {
@@ -219,11 +219,11 @@
                     console.error('Error:', error);
                     showToast('Error rejecting payment', 'error');
                 });
-            }
+            }, null, { title: 'Reject Payment', confirmText: 'Reject', type: 'danger' });
         }
 
         function deleteBooking(bookingId) {
-            if (confirm('Are you sure you want to delete this booking?')) {
+            showConfirm('Are you sure you want to delete this booking? This action cannot be undone.', () => {
                 fetch(`/admin/bookings/${bookingId}`, {
                     method: 'DELETE',
                     headers: {
@@ -244,7 +244,7 @@
                     console.error('Error:', error);
                     showToast('Error deleting booking', 'error');
                 });
-            }
+            }, null, { title: 'Delete Booking', confirmText: 'Delete', type: 'danger' });
         }
 
         // Bulk delete handling
@@ -264,11 +264,8 @@
                 return;
             }
 
-            if (!confirm(`Delete ${ids.length} selected booking(s)?`)) {
-                return;
-            }
-
-            fetch('/admin/bookings/bulk-delete', {
+            showConfirm(`Delete ${ids.length} selected booking(s)? This action cannot be undone.`, () => {
+                fetch('/admin/bookings/bulk-delete', {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
@@ -289,6 +286,7 @@
                 console.error('Error:', error);
                 showToast('Error deleting bookings', 'error');
             });
+            }, null, { title: 'Delete Multiple Bookings', confirmText: 'Delete All', type: 'danger' });
         }
 
         // Add Booking Modal Functions
