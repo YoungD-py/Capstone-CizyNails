@@ -49,7 +49,12 @@
 
         <!-- Main Content -->
         <div class="flex-1 p-8">
-            <h1 class="text-3xl font-bold mb-8">Manage Bookings</h1>
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-bold">Manage Bookings</h1>
+                <button onclick="openAddBookingModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-semibold">
+                    + Add Appointment
+                </button>
+            </div>
 
             <!-- Filters -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -284,6 +289,191 @@
                 alert('Error deleting bookings');
             });
         }
+
+        // Add Booking Modal Functions
+        function openAddBookingModal() {
+            document.getElementById('addBookingModal').classList.remove('hidden');
+            loadCustomers();
+            loadServices();
+        }
+
+        function closeAddBookingModal() {
+            document.getElementById('addBookingModal').classList.add('hidden');
+            document.getElementById('addBookingForm').reset();
+        }
+
+        async function loadCustomers() {
+            try {
+                const response = await fetch('/admin/api/customers-list', {
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    }
+                });
+                const customers = await response.json();
+                const select = document.getElementById('bookingCustomer');
+                select.innerHTML = '<option value="">Select Customer</option>' + 
+                    customers.map(c => `<option value="${c.id}">${c.name} - ${c.email}</option>`).join('');
+            } catch (error) {
+                console.error('Error loading customers:', error);
+            }
+        }
+
+        async function loadServices() {
+            try {
+                const response = await fetch('/admin/api/services-list', {
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    }
+                });
+                const services = await response.json();
+                const select = document.getElementById('bookingService');
+                select.innerHTML = '<option value="">Select Service</option>' + 
+                    services.map(s => `<option value="${s.id}" data-type="${s.type}" data-duration="${s.duration_minutes}">${s.name} - Rp ${s.price.toLocaleString()} (${s.duration_minutes} min)</option>`).join('');
+            } catch (error) {
+                console.error('Error loading services:', error);
+            }
+        }
+
+        async function loadAvailableTimesAdmin() {
+            const serviceId = document.getElementById('bookingService').value;
+            const date = document.getElementById('bookingDate').value;
+            const timeSlotsDiv = document.getElementById('adminTimeSlots');
+            const bookingTimeInput = document.getElementById('bookingTime');
+
+            if (!serviceId || !date) {
+                timeSlotsDiv.innerHTML = '<p class="text-gray-500 text-sm col-span-4">Select service and date first</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/bookings/available-times?service_id=${serviceId}&date=${date}`);
+                const data = await response.json();
+
+                if (!data.times || data.times.length === 0) {
+                    timeSlotsDiv.innerHTML = '<p class="text-gray-500 text-sm col-span-4">No available times</p>';
+                    return;
+                }
+
+                timeSlotsDiv.innerHTML = data.times.map(slot => `
+                    <button type="button" 
+                            class="admin-time-slot px-3 py-2 rounded-lg border-2 transition ${slot.available ? 'border-gray-300 hover:border-green-600 cursor-pointer' : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'}"
+                            data-time="${slot.time}"
+                            ${!slot.available ? 'disabled' : ''}>
+                        ${slot.time}
+                    </button>
+                `).join('');
+
+                document.querySelectorAll('.admin-time-slot:not(:disabled)').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        document.querySelectorAll('.admin-time-slot').forEach(b => b.classList.remove('border-green-600', 'bg-green-50'));
+                        btn.classList.add('border-green-600', 'bg-green-50');
+                        bookingTimeInput.value = btn.dataset.time;
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading times:', error);
+                timeSlotsDiv.innerHTML = '<p class="text-red-500 text-sm col-span-4">Error loading times</p>';
+            }
+        }
+
+        document.getElementById('addBookingForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+
+            if (!data.booking_time) {
+                alert('Please select a time slot');
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/bookings/create', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Booking created successfully!');
+                    closeAddBookingModal();
+                    location.reload();
+                } else {
+                    const errorMessage = result.message || 'Failed to create booking';
+                    const errorDetails = result.errors ? '\n\n' + Object.values(result.errors).flat().join('\n') : '';
+                    alert('Error: ' + errorMessage + errorDetails);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error creating booking');
+            }
+        });
     </script>
+
+    <!-- Add Booking Modal -->
+    <div id="addBookingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-6">Add Manual Booking</h2>
+            <p class="text-sm text-gray-600 mb-4">For customers who booked via WhatsApp and paid directly</p>
+            
+            <form id="addBookingForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Customer *</label>
+                    <select id="bookingCustomer" name="user_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Service *</label>
+                    <select id="bookingService" name="service_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" onchange="loadAvailableTimesAdmin()">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Booking Date *</label>
+                    <input type="date" id="bookingDate" name="booking_date" min="{{ date('Y-m-d') }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" onchange="loadAvailableTimesAdmin()">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Select Time *</label>
+                    <div id="adminTimeSlots" class="grid grid-cols-4 gap-2 mb-2">
+                        <p class="text-gray-500 text-sm col-span-4">Select service and date first</p>
+                    </div>
+                    <input type="hidden" id="bookingTime" name="booking_time" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Notes</label>
+                    <textarea name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Additional notes..."></textarea>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-sm text-blue-800">
+                        <strong>Note:</strong> Booking will be created with status <strong>"Confirmed"</strong> and payment status <strong>"Paid"</strong> (manual payment received).
+                    </p>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit" class="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold">
+                        Create Booking
+                    </button>
+                    <button type="button" onclick="closeAddBookingModal()" class="flex-1 bg-gray-300 text-gray-900 py-3 rounded-lg hover:bg-gray-400 font-semibold">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

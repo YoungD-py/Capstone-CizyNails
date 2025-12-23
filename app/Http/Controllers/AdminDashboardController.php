@@ -210,4 +210,148 @@ class AdminDashboardController extends Controller
         $customers = User::where('role', 'customer')->paginate(20);
         return view('admin.customers', compact('customers'));
     }
+
+    public function getCustomersList()
+    {
+        $customers = User::where('role', 'customer')
+            ->select('id', 'name', 'email')
+            ->orderBy('name')
+            ->get();
+        return response()->json($customers);
+    }
+
+    public function getServicesList()
+    {
+        $services = Service::where('is_active', true)
+            ->select('id', 'name', 'type', 'duration_minutes', 'price')
+            ->get();
+        return response()->json($services);
+    }
+
+    public function createBooking(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'user_id' => 'required|exists:users,id',
+                'service_id' => 'required|exists:services,id',
+                'booking_date' => 'required|date|after_or_equal:today',
+                'booking_time' => 'required|date_format:H:i',
+                'notes' => 'nullable|string|max:500',
+            ]);
+
+            // Check if the booking date and time has already passed
+            $bookingDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $validated['booking_date'] . ' ' . $validated['booking_time']);
+            if ($bookingDateTime->isPast()) {
+                return response()->json([
+                    'message' => 'Cannot create booking for past date/time',
+                    'errors' => ['booking_time' => ['Selected time has already passed']]
+                ], 422);
+            }
+
+            $service = Service::findOrFail($validated['service_id']);
+
+            // Ensure schedules exist for the selected date
+            $this->ensureDailySchedules($validated['booking_date']);
+
+            // Check schedule availability
+            $schedule = \App\Models\Schedule::where('date', $validated['booking_date'])
+                ->where('time_slot', \Carbon\Carbon::createFromFormat('H:i', $validated['booking_time'])->format('H:i:s'))
+                ->first();
+
+            if (!$schedule) {
+                return response()->json([
+                    'message' => 'No schedule available for selected date/time',
+                    'errors' => ['booking_date' => ['No schedule available']]
+                ], 422);
+            }
+
+            // Check capacity
+            if ($service->type === 'nails_art' && $schedule->nails_art_booked >= 2) {
+                return response()->json([
+                    'message' => 'Time slot is fully booked for Nails Art',
+                    'errors' => ['booking_time' => ['Time slot is full']]
+                ], 422);
+            }
+
+            if ($service->type === 'eyelash' && $schedule->eyelash_booked >= 1) {
+                return response()->json([
+                    'message' => 'Time slot is fully booked for Eyelash',
+                    'errors' => ['booking_time' => ['Time slot is full']]
+                ], 422);
+            }
+
+            // Create booking with confirmed and paid status (manual payment received)
+            $booking = Booking::create([
+                'user_id' => $validated['user_id'],
+                'service_id' => $validated['service_id'],
+                'booking_date' => $validated['booking_date'],
+                'booking_time' => $validated['booking_time'],
+                'total_duration_minutes' => $service->duration_minutes,
+                'needs_removal' => false,
+                'price' => $service->price,
+                'notes' => $validated['notes'] ?? null,
+                'status' => 'confirmed',  // Auto-confirmed for admin booking
+                'payment_status' => 'paid',  // Already paid manually
+                'transaction_id' => 'MANUAL-' . time(),  // Manual transaction ID
+            ]);
+
+            // Update schedule capacity
+            if ($service->type === 'nails_art') {
+                $schedule->increment('nails_art_booked');
+            } else {
+                $schedule->increment('eyelash_booked');
+            }
+
+            return response()->json([
+                'message' => 'Booking created successfully',
+                'booking' => $booking->load('user', 'service'),
+            ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Admin booking creation error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An error occurred while creating the booking',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function ensureDailySchedules(string $date): void
+    {
+        $existingCount = \App\Models\Schedule::where('date', $date)->count();
+        if ($existingCount > 0) {
+            return;
+        }
+
+        $start = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $date . ' 10:00');
+        $end = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $date . ' 20:00');
+
+        $slots = [];
+        $cursor = $start->copy();
+        while ($cursor->lte($end)) {
+            $slots[] = [
+                'date' => $date,
+                'time_slot' => $cursor->format('H:i:s'),
+                'nails_art_booked' => 0,
+                'eyelash_booked' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+            $cursor->addMinutes(60);
+        }
+
+        if (!empty($slots)) {
+            foreach ($slots as $slot) {
+                \App\Models\Schedule::firstOrCreate(
+                    ['date' => $slot['date'], 'time_slot' => $slot['time_slot']],
+                    ['nails_art_booked' => 0, 'eyelash_booked' => 0]
+                );
+            }
+        }
+    }
 }
