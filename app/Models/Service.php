@@ -14,6 +14,7 @@ class Service extends Model
         'type',
         'subtype',
         'description',
+        'image_path',
         'duration_minutes',
         'staff_count',
         'price',
