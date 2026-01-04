@@ -75,6 +75,43 @@
             transform: scale(1.1);
             box-shadow: 0 6px 20px rgba(236, 72, 153, 0.6);
         }
+        .floating-btn:hover .click-text {
+            transform: translateX(-10px);
+        }
+        .click-text {
+            position: absolute;
+            right: 75px;
+            background: white;
+            color: #ec4899;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            white-space: nowrap;
+            animation: bounce 1.5s infinite;
+            transition: transform 0.3s ease;
+        }
+        .click-text::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid white;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+        }
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            50% {
+                transform: translateX(-8px);
+            }
+        }
         @keyframes pulse {
             0%, 100% {
                 box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
@@ -322,6 +359,7 @@
 
     <!-- Floating QR Code Button -->
     <div class="floating-btn" onclick="toggleQRModal()">
+        <span class="click-text">Click Here!!!</span>
         <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
         </svg>
