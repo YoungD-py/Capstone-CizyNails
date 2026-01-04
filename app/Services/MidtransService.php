@@ -145,11 +145,27 @@ class MidtransService
                 ]);
                 \Log::info('Booking payment pending', ['booking_id' => $bookingId]);
             } else if ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
+                // Payment failed/expired/cancelled - set to unpaid and cancel booking
                 $booking->update([
-                    'payment_status' => 'cancelled',
+                    'payment_status' => 'unpaid',
+                    'status' => 'cancelled',
                     'transaction_id' => $orderId,
                 ]);
-                \Log::info('Booking payment cancelled/denied', ['booking_id' => $bookingId]);
+                
+                // Rollback schedule capacity
+                $schedule = \App\Models\Schedule::where('date', $booking->booking_date)
+                    ->where('time_slot', $booking->booking_time)
+                    ->first();
+                
+                if ($schedule && $booking->service) {
+                    if ($booking->service->type === 'nails_art') {
+                        $schedule->decrement('nails_art_booked');
+                    } else {
+                        $schedule->decrement('eyelash_booked');
+                    }
+                }
+                
+                \Log::info('Booking payment failed/expired', ['booking_id' => $bookingId, 'reason' => $transactionStatus]);
             }
 
             return true;
