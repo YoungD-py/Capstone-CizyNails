@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book Appointment - Cizy Nails</title>
+    <link rel="icon" type="image/jpeg" href="{{ asset('img/cizyLogo.jpeg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Added Midtrans Snap script -->
     <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>

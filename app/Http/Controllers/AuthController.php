@@ -80,6 +80,8 @@ class AuthController extends Controller
         }
 
         Auth::login($user);
+        // Regenerate session to prevent fixation and ensure CSRF/session stability
+        $request->session()->regenerate();
         
         if ($user->role === 'admin') {
             return redirect()->route('admin.dashboard')->with('success', 'Login successful!');
