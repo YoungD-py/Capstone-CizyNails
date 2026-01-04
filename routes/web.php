@@ -29,6 +29,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [CustomerDashboardController::class, 'index'])->name('dashboard');
     Route::get('/booking', [CustomerDashboardController::class, 'bookingForm'])->name('booking.form');
+    Route::post('/bookings/{id}/cancel', [CustomerDashboardController::class, 'cancelBooking'])->name('customer.cancel-booking');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
@@ -38,8 +39,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/api/customers-list', [AdminDashboardController::class, 'getCustomersList'])->name('admin.api.customers');
     Route::get('/api/services-list', [AdminDashboardController::class, 'getServicesList'])->name('admin.api.services');
     Route::post('/bookings/bulk-delete', [AdminDashboardController::class, 'bulkDestroy'])->name('admin.bookings.bulk-destroy');
-    Route::post('/bookings/{booking}/verify-payment', [AdminDashboardController::class, 'verifyPayment'])->name('admin.verify-payment');
-    Route::post('/bookings/{booking}/reject-payment', [AdminDashboardController::class, 'rejectPayment'])->name('admin.reject-payment');
+    Route::post('/bookings/{booking}/cancel', [AdminDashboardController::class, 'cancelBooking'])->name('admin.cancel-booking');
     Route::delete('/bookings/{booking}', [AdminDashboardController::class, 'destroy'])->name('admin.bookings.destroy');
     Route::get('/services', [AdminDashboardController::class, 'services'])->name('admin.services');
     Route::post('/services', [AdminDashboardController::class, 'storeService'])->name('admin.services.store');
