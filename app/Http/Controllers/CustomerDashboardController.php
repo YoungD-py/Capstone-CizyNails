@@ -40,7 +40,7 @@ class CustomerDashboardController extends Controller
                     ]);
                 } elseif (in_array($mtStatus, ['deny', 'expire', 'cancel'])) {
                     $pending->update([
-                        'payment_status' => 'cancelled',
+                        'payment_status' => 'unpaid',
                         'status' => 'cancelled',
                     ]);
                 }
@@ -69,5 +69,55 @@ class CustomerDashboardController extends Controller
         $services = \App\Models\Service::where('is_active', true)->get();
         
         return view('customer.booking', compact('date', 'services'));
+    }
+
+    public function cancelBooking(Request $request, $id)
+    {
+        $booking = \App\Models\Booking::findOrFail($id);
+        
+        // Check if user owns this booking
+        if ($booking->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized action'
+            ], 403);
+        }
+        
+        // Check if booking can be cancelled (not already cancelled or completed)
+        if (in_array($booking->status, ['cancelled', 'completed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking cannot be cancelled'
+            ], 400);
+        }
+        
+        // Cancel booking - NO REFUND (payment status remains as is)
+        $booking->update([
+            'status' => 'cancelled'
+        ]);
+        
+        // Rollback schedule capacity
+        $schedule = \App\Models\Schedule::where('date', $booking->booking_date)
+            ->where('time_slot', $booking->booking_time)
+            ->first();
+        
+        if ($schedule && $booking->service) {
+            if ($booking->service->type === 'nails_art') {
+                $schedule->decrement('nails_art_booked');
+            } else {
+                $schedule->decrement('eyelash_booked');
+            }
+        }
+        
+        \Log::info('Customer cancelled booking', [
+            'booking_id' => $booking->id,
+            'user_id' => $request->user()->id,
+            'payment_status' => $booking->payment_status
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking cancelled successfully. Note: No refund will be processed.'
+        ]);
     }
 }
