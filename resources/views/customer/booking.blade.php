@@ -9,6 +9,19 @@
     <!-- Added Midtrans Snap script -->
     <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
     <script src="{{ asset('js/toast.js') }}"></script>
+    <style>
+        .service-card {
+            position: relative;
+        }
+        .service-card.selected {
+            border-color: #ec4899;
+            background-color: #fdf2f8;
+            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.2);
+        }
+        .service-card.selected .checkmark {
+            display: block;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -39,15 +52,42 @@
 
                 <!-- Service Selection -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-900 mb-2">Select Service</label>
-                    <select id="serviceId" name="service_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                        <option value="">Choose a service...</option>
+                    <label class="block text-sm font-semibold text-gray-900 mb-4">Select Service</label>
+                    <div id="serviceCards" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         @foreach($services as $service)
-                            <option value="{{ $service->id }}" data-type="{{ $service->type }}" data-duration="{{ $service->duration_minutes }}">
-                                {{ $service->name }} - Rp.{{ number_format($service->price, 0) }} ({{ $service->duration_minutes }} min)
-                            </option>
+                            <div class="service-card border-2 border-gray-200 rounded-xl p-4 cursor-pointer transition-all hover:border-pink-300 hover:shadow-md" 
+                                 onclick="selectService({{ $service->id }}, '{{ $service->type }}', {{ $service->duration_minutes }})"
+                                 data-service-id="{{ $service->id }}"
+                                 data-type="{{ $service->type }}"
+                                 data-duration="{{ $service->duration_minutes }}">
+                                <div class="flex items-start gap-3">
+                                    @if($service->image_path)
+                                        <img src="{{ asset('storage/'.$service->image_path) }}" alt="{{ $service->name }}" class="w-16 h-16 object-cover rounded-lg">
+                                    @else
+                                        <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-rose-400 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                        </div>
+                                    @endif
+                                    <div class="flex-1">
+                                        <h3 class="font-bold text-gray-900 mb-1">{{ $service->name }}</h3>
+                                        <p class="text-sm text-gray-600 mb-2">{{ Str::limit($service->description, 50) }}</p>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-pink-600 font-bold">Rp {{ number_format($service->price, 0, ',', '.') }}</span>
+                                            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">{{ $service->duration_minutes }} min</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="checkmark hidden absolute top-2 right-2 bg-pink-600 text-white rounded-full p-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                            </div>
                         @endforeach
-                    </select>
+                    </div>
+                    <input type="hidden" id="serviceId" name="service_id" required>
                 </div>
 
                 <!-- Date Selection -->
@@ -113,7 +153,7 @@
     </div>
 
     <script>
-        const serviceSelect = document.getElementById('serviceId');
+        const serviceIdInput = document.getElementById('serviceId');
         const dateInput = document.getElementById('bookingDate');
         const timeSlotsDiv = document.getElementById('timeSlots');
         const bookingTimeInput = document.getElementById('bookingTime');
@@ -125,23 +165,46 @@
 
         let currentBookingId = null;
         let snapToken = null;
+        let selectedServiceType = null;
+        let selectedServiceDuration = null;
 
-        async function loadAvailableTimes() {
-            const serviceId = serviceSelect.value;
-            const date = dateInput.value;
+        function selectService(serviceId, serviceType, duration) {
+            // Remove selected class from all cards
+            document.querySelectorAll('.service-card').forEach(card => {
+                card.classList.remove('selected');
+            });
 
-            if (!serviceId || !date) {
-                timeSlotsDiv.innerHTML = '<p class="text-gray-500 text-sm">Select a service and date first</p>';
-                removalOptionContainer.classList.add('hidden');
-                return;
+            // Add selected class to clicked card
+            const selectedCard = document.querySelector(`.service-card[data-service-id="${serviceId}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
             }
 
-            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-            const serviceType = selectedOption.dataset.type;
+            // Set hidden input value
+            serviceIdInput.value = serviceId;
+            selectedServiceType = serviceType;
+            selectedServiceDuration = duration;
+
+            // Show/hide removal option
             if (serviceType === 'nails_art' || serviceType === 'eyelash') {
                 removalOptionContainer.classList.remove('hidden');
             } else {
                 removalOptionContainer.classList.add('hidden');
+            }
+
+            // Reload available times if date is already selected
+            if (dateInput.value) {
+                loadAvailableTimes();
+            }
+        }
+
+        async function loadAvailableTimes() {
+            const serviceId = serviceIdInput.value;
+            const date = dateInput.value;
+
+            if (!serviceId || !date) {
+                timeSlotsDiv.innerHTML = '<p class="text-gray-500 text-sm">Select a service and date first</p>';
+                return;
             }
 
             try {
@@ -198,13 +261,15 @@
             });
         });
 
-        serviceSelect.addEventListener('change', () => {
-            loadAvailableTimes();
-        });
         dateInput.addEventListener('change', loadAvailableTimes);
 
         bookingForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            if (!serviceIdInput.value) {
+                showToast('Please select a service', 'warning');
+                return;
+            }
 
             if (!bookingTimeInput.value) {
                 showToast('Please select a time slot', 'warning');
