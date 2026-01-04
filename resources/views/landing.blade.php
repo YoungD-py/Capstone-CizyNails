@@ -145,13 +145,16 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     @forelse($services as $service)
                         <div class="bg-white rounded-xl shadow-md p-6 hover-lift border border-gray-100">
+                            <div class="mb-4 overflow-hidden rounded-lg border border-gray-100">
+                                <img src="{{ $service->image_path ? asset('storage/'.$service->image_path) : asset('img/cizyLogo.jpeg') }}" alt="{{ $service->name }}" class="w-full h-44 object-cover">
+                            </div>
                             <div class="flex items-start justify-between mb-3">
                                 <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-rose-400 rounded-lg flex items-center justify-center">
                                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                     </svg>
                                 </div>
-                                <span class="bg-pink-50 text-pink-700 px-3 py-1 rounded-full text-sm font-medium">{{ $service->duration }} min</span>
+                                <span class="bg-pink-50 text-pink-700 px-3 py-1 rounded-full text-sm font-medium">{{ $service->duration_minutes ?? $service->duration }} min</span>
                             </div>
                             <h4 class="text-xl font-bold text-gray-900 mb-2">{{ $service->name }}</h4>
                             <p class="text-gray-600 text-sm mb-4 leading-relaxed">{{ $service->description }}</p>
