@@ -74,6 +74,9 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @forelse($services as $service)
                     <div class="bg-white rounded-lg shadow-md p-6 {{ !$service->is_active ? 'opacity-60' : '' }}">
+                        <div class="mb-4">
+                            <img src="{{ $service->image_path ? asset('storage/'.$service->image_path) : asset('img/cizyLogo.jpeg') }}" alt="{{ $service->name }}" class="w-full h-40 object-cover rounded-md border border-gray-100">
+                        </div>
                         <div class="flex justify-between items-start mb-2">
                             <h3 class="text-lg font-semibold text-gray-900">{{ $service->name }}</h3>
                             @if(!$service->is_active)
@@ -121,7 +124,7 @@
     <div id="serviceModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <h2 id="modalTitle" class="text-2xl font-bold mb-6">Add Service</h2>
-            <form id="serviceForm" method="POST" action="{{ route('admin.services.store') }}" class="space-y-4">
+            <form id="serviceForm" method="POST" action="{{ route('admin.services.store') }}" class="space-y-4" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" id="serviceId" name="_method" value="POST">
                 
@@ -154,6 +157,12 @@
                     <textarea id="serviceDescription" name="description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"></textarea>
                 </div>
                 
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Service Image (opsional)</label>
+                    <input type="file" id="serviceImage" name="image" accept="image/*" class="w-full text-sm text-gray-700">
+                    <p class="text-xs text-gray-500 mt-1">Format: JPG/PNG, maks 2 MB</p>
+                </div>
+
                 <div>
                     <label class="block text-sm font-semibold text-gray-900 mb-2">Duration (minutes) *</label>
                     <input type="number" id="serviceDuration" name="duration_minutes" min="15" max="480" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500">
@@ -203,6 +212,7 @@
             document.getElementById('serviceForm').reset();
             document.getElementById('serviceIsActive').checked = true;
             document.getElementById('subtypeContainer').classList.add('hidden');
+            document.getElementById('serviceImage').value = '';
             document.getElementById('serviceModal').classList.remove('hidden');
         }
 
@@ -223,6 +233,7 @@
             document.getElementById('serviceStaffCount').value = service.staff_count || 1;
             document.getElementById('servicePrice').value = service.price;
             document.getElementById('serviceIsActive').checked = service.is_active;
+            document.getElementById('serviceImage').value = '';
             
             toggleSubtype();
             document.getElementById('serviceModal').classList.remove('hidden');
