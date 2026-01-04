@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AdminDashboardController extends Controller
 {
@@ -149,9 +150,14 @@ class AdminDashboardController extends Controller
             'staff_count' => 'required|integer|min:1|max:10',
             'price' => 'required|numeric|min:0|max:99999999.99',
             'is_active' => 'nullable|boolean',
+            'image' => 'nullable|image|max:2048',
         ]);
 
         $validated['is_active'] = $request->has('is_active');
+
+        if ($request->hasFile('image')) {
+            $validated['image_path'] = $request->file('image')->store('services', 'public');
+        }
 
         $service = Service::create($validated);
 
@@ -169,9 +175,18 @@ class AdminDashboardController extends Controller
             'staff_count' => 'required|integer|min:1|max:10',
             'price' => 'required|numeric|min:0|max:99999999.99',
             'is_active' => 'nullable|boolean',
+            'image' => 'nullable|image|max:2048',
         ]);
 
         $validated['is_active'] = $request->has('is_active');
+
+        if ($request->hasFile('image')) {
+            $newPath = $request->file('image')->store('services', 'public');
+            if ($service->image_path) {
+                Storage::disk('public')->delete($service->image_path);
+            }
+            $validated['image_path'] = $newPath;
+        }
 
         $service->update($validated);
 
