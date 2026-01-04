@@ -15,11 +15,15 @@ class DatabaseSeeder extends Seeder
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         
+        User::truncate();
         Schedule::truncate();
         Service::truncate();
-        User::truncate();
         
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+        $this->call([
+            NailArtistSeeder::class,
+        ]);
 
         // Create admin user
         User::create([
