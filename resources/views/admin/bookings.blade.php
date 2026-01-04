@@ -108,11 +108,11 @@
                                     <input type="checkbox" class="row-checkbox w-4 h-4" value="{{ $booking->id }}">
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-900">
-                                    <div class="font-semibold">{{ $booking->user->name }}</div>
-                                    <div class="text-gray-500 text-xs">{{ $booking->user->email }}</div>
+                                    <div class="font-semibold">{{ $booking->user?->name ?? 'Unknown' }}</div>
+                                    <div class="text-gray-500 text-xs">{{ $booking->user?->email ?? 'N/A' }}</div>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->user->phone ?? '-' }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->service->name }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->user?->phone ?? '-' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->service?->name ?? 'Unknown' }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->booking_date->format('M d, Y') }} at {{ $booking->booking_time }}</td>
                                 <td class="px-6 py-4 text-sm">
                                     <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $booking->status === 'confirmed' ? 'bg-green-100 text-green-800' : ($booking->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
