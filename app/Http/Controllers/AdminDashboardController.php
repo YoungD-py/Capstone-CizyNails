@@ -52,33 +52,43 @@ class AdminDashboardController extends Controller
         return view('admin.bookings', compact('bookings'));
     }
 
-    public function verifyPayment(Request $request, Booking $booking)
+    public function cancelBooking(Booking $booking)
     {
-        if ($booking->payment_status !== 'pending') {
-            return response()->json(['success' => false, 'message' => 'Payment already processed'], 400);
+        // Check if booking can be cancelled
+        if (in_array($booking->status, ['cancelled', 'completed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking cannot be cancelled'
+            ], 400);
         }
 
+        // Cancel booking - NO REFUND (payment status remains as is)
         $booking->update([
-            'payment_status' => 'verified',
-            'payment_verified_at' => now(),
-            'status' => 'confirmed',
+            'status' => 'cancelled'
         ]);
 
-        return response()->json(['success' => true, 'message' => 'Payment verified successfully']);
-    }
+        // Rollback schedule capacity
+        $schedule = \App\Models\Schedule::where('date', $booking->booking_date)
+            ->where('time_slot', $booking->booking_time)
+            ->first();
 
-    public function rejectPayment(Request $request, Booking $booking)
-    {
-        if ($booking->payment_status !== 'pending') {
-            return response()->json(['success' => false, 'message' => 'Payment already processed'], 400);
+        if ($schedule && $booking->service) {
+            if ($booking->service->type === 'nails_art') {
+                $schedule->decrement('nails_art_booked');
+            } else {
+                $schedule->decrement('eyelash_booked');
+            }
         }
 
-        $booking->update([
-            'payment_status' => 'rejected',
-            'status' => 'cancelled',
+        \Log::info('Admin cancelled booking', [
+            'booking_id' => $booking->id,
+            'payment_status' => $booking->payment_status
         ]);
 
-        return response()->json(['success' => true, 'message' => 'Payment rejected']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking cancelled successfully. No refund processed.'
+        ]);
     }
 
     public function destroy(Booking $booking)
