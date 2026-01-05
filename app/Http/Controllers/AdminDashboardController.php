@@ -47,9 +47,22 @@ class AdminDashboardController extends Controller
             $query->where('booking_date', $request->date);
         }
 
-        $bookings = $query->orderBy('booking_date')->orderBy('booking_time')->paginate(20);
+        if ($request->has('service_id') && $request->service_id) {
+            $query->where('service_id', $request->service_id);
+        }
 
-        return view('admin.bookings', compact('bookings'));
+        // Sorting
+        $sort = $request->get('sort', 'latest');
+        if ($sort === 'oldest') {
+            $query->orderBy('booking_date', 'asc')->orderBy('booking_time', 'asc');
+        } else {
+            $query->orderBy('booking_date', 'desc')->orderBy('booking_time', 'desc');
+        }
+
+        $bookings = $query->paginate(20);
+        $services = \App\Models\Service::where('is_active', true)->orderBy('name')->get();
+
+        return view('admin.bookings', compact('bookings', 'services'));
     }
 
     public function cancelBooking(Booking $booking)
