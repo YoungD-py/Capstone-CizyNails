@@ -113,6 +113,20 @@ class BookingController extends Controller
                 ], 422);
             }
 
+            // Also check capacity based on service staff count
+            $countBookingsAtTime = Booking::where('service_id', $validated['service_id'])
+                ->where('booking_date', $validated['booking_date'])
+                ->where('booking_time', $validated['booking_time'])
+                ->whereIn('status', ['pending', 'confirmed', 'completed'])
+                ->count();
+
+            if ($countBookingsAtTime >= $service->staff_count) {
+                return response()->json([
+                    'message' => 'This time slot is fully booked. Maximum capacity (' . $service->staff_count . ' staff) has been reached.',
+                    'errors' => ['booking_time' => ['This time slot is fully booked for this service.']]
+                ], 422);
+            }
+
             $totalDuration = $service->duration_minutes;
             if ($validated['needs_removal'] ?? false) {
                 $totalDuration += 30;
@@ -296,13 +310,14 @@ class BookingController extends Controller
                     continue;
                 }
 
-                $isAvailable = false;
+                // Check availability based on service staff count
+                $countBookingsAtTime = Booking::where('service_id', $validated['service_id'])
+                    ->where('booking_date', $date)
+                    ->where('booking_time', $formattedTime)
+                    ->whereIn('status', ['pending', 'confirmed', 'completed'])
+                    ->count();
 
-                if ($service->type === 'nails_art') {
-                    $isAvailable = $schedule->nails_art_booked < 2;
-                } else {
-                    $isAvailable = $schedule->eyelash_booked < 1;
-                }
+                $isAvailable = $countBookingsAtTime < $service->staff_count;
 
                 $times[] = [
                     'time' => $formattedTime,
@@ -396,6 +411,21 @@ class BookingController extends Controller
             if ($service->type === 'eyelash' && $newSchedule->eyelash_booked >= 1) {
                 return response()->json([
                     'message' => 'Slot waktu ini sudah penuh untuk layanan Eyelash.',
+                    'errors' => ['booking_time' => ['Slot waktu penuh']]
+                ], 422);
+            }
+
+            // Also check capacity based on service staff count
+            $countBookingsAtNewTime = Booking::where('service_id', $service->id)
+                ->where('booking_date', $validated['booking_date'])
+                ->where('booking_time', $validated['booking_time'])
+                ->where('id', '!=', $booking->id)
+                ->whereIn('status', ['pending', 'confirmed', 'completed'])
+                ->count();
+
+            if ($countBookingsAtNewTime >= $service->staff_count) {
+                return response()->json([
+                    'message' => 'Slot waktu ini sudah penuh. Kapasitas maksimal (' . $service->staff_count . ' staff) sudah tercapai.',
                     'errors' => ['booking_time' => ['Slot waktu penuh']]
                 ], 422);
             }
