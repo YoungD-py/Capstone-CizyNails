@@ -324,6 +324,20 @@ class AdminDashboardController extends Controller
                 ], 422);
             }
 
+            // Also check capacity based on service staff count
+            $countBookingsAtTime = Booking::where('service_id', $validated['service_id'])
+                ->where('booking_date', $validated['booking_date'])
+                ->where('booking_time', $validated['booking_time'])
+                ->where('status', '!=', 'cancelled')
+                ->count();
+
+            if ($countBookingsAtTime >= $service->staff_count) {
+                return response()->json([
+                    'message' => 'Time slot is fully booked. Maximum capacity (' . $service->staff_count . ' staff) has been reached.',
+                    'errors' => ['booking_time' => ['Time slot is full']]
+                ], 422);
+            }
+
             // Create booking with confirmed and paid status (manual payment received)
             $booking = Booking::create([
                 'user_id' => $validated['user_id'],
