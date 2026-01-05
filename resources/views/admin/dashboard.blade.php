@@ -121,6 +121,11 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination -->
+                <div class="mt-6">
+                    {{ $recentBookings->links() }}
+                </div>
             </div>
         </div>
     </div>
