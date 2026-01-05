@@ -256,13 +256,19 @@ class AdminDashboardController extends Controller
     public function createBooking(Request $request)
     {
         try {
+            \Log::info('Admin creating booking', ['request_data' => $request->all()]);
+
             $validated = $request->validate([
                 'user_id' => 'required|exists:users,id',
+                'customer_name' => 'required|string|max:255',
+                'customer_phone' => 'required|string|max:20',
                 'service_id' => 'required|exists:services,id',
                 'booking_date' => 'required|date|after_or_equal:today',
                 'booking_time' => 'required|date_format:H:i',
                 'notes' => 'nullable|string|max:500',
             ]);
+
+            \Log::info('Validation passed', ['validated_data' => $validated]);
 
             // Check if the booking date and time has already passed
             $bookingDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $validated['booking_date'] . ' ' . $validated['booking_time']);
@@ -308,6 +314,8 @@ class AdminDashboardController extends Controller
             // Create booking with confirmed and paid status (manual payment received)
             $booking = Booking::create([
                 'user_id' => $validated['user_id'],
+                'customer_name' => $validated['customer_name'],
+                'customer_phone' => $validated['customer_phone'],
                 'service_id' => $validated['service_id'],
                 'booking_date' => $validated['booking_date'],
                 'booking_time' => $validated['booking_time'],
@@ -316,7 +324,7 @@ class AdminDashboardController extends Controller
                 'price' => $service->price,
                 'notes' => $validated['notes'] ?? null,
                 'status' => 'confirmed',  // Auto-confirmed for admin booking
-                'payment_status' => 'verified',  // Mark as verified since payment handled manually
+                'payment_status' => 'paid',  // Mark as paid since payment handled manually
                 'payment_verified_at' => now(),
                 'transaction_id' => 'MANUAL-' . time(),  // Manual transaction ID
             ]);
@@ -334,12 +342,16 @@ class AdminDashboardController extends Controller
             ], 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation failed', ['errors' => $e->errors()]);
             return response()->json([
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Admin booking creation error: ' . $e->getMessage());
+            \Log::error('Admin booking creation error: ' . $e->getMessage(), [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'message' => 'An error occurred while creating the booking',
                 'error' => $e->getMessage()
