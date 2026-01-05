@@ -26,8 +26,7 @@ class AdminDashboardController extends Controller
         
         $recentBookings = Booking::with(['user', 'service'])
             ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get();
+            ->paginate(5);
 
         return view('admin.dashboard', compact('totalBookings', 'totalCustomers', 'totalServices', 'todayBookings', 'totalRevenue', 'recentBookings'));
     }
@@ -60,7 +59,7 @@ class AdminDashboardController extends Controller
             $query->orderBy('booking_date', 'desc')->orderBy('booking_time', 'desc');
         }
 
-        $bookings = $query->paginate(20);
+        $bookings = $query->paginate(5);
         $services = \App\Models\Service::where('is_active', true)->orderBy('name')->get();
 
         return view('admin.bookings', compact('bookings', 'services'));
@@ -159,7 +158,7 @@ class AdminDashboardController extends Controller
 
     public function services()
     {
-        $services = Service::all();
+        $services = Service::paginate(5);
         return view('admin.services', compact('services'));
     }
 
@@ -246,7 +245,7 @@ class AdminDashboardController extends Controller
 
     public function customers()
     {
-        $customers = User::where('role', 'customer')->paginate(20);
+        $customers = User::where('role', 'customer')->with('bookings')->paginate(5);
         return view('admin.customers', compact('customers'));
     }
 
