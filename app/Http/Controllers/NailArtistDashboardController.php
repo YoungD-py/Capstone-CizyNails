@@ -26,8 +26,7 @@ class NailArtistDashboardController extends Controller
             ->whereIn('status', ['pending', 'confirmed'])
             ->orderBy('booking_date')
             ->orderBy('booking_time')
-            ->limit(10)
-            ->get();
+            ->paginate(5);
 
         return view('nail-artist.dashboard', compact(
             'todayBookings', 
@@ -51,7 +50,7 @@ class NailArtistDashboardController extends Controller
 
         $bookings = $query->orderBy('booking_date')
             ->orderBy('booking_time')
-            ->paginate(20);
+            ->paginate(5);
 
         return view('nail-artist.bookings', compact('bookings'));
     }
