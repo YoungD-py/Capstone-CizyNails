@@ -67,9 +67,14 @@
                     <p class="text-3xl font-bold text-green-600">{{ $totalServices }}</p>
                 </div>
                 <div class="bg-white rounded-lg shadow-md p-6">
-                    <p class="text-gray-600 text-sm">Today's Bookings</p>
-                    <p class="text-3xl font-bold text-purple-600">{{ $todayBookings }}</p>
+                    <p class="text-gray-600 text-sm">Total Revenue</p>
+                    <p class="text-3xl font-bold text-emerald-600">Rp. {{ number_format($totalRevenue, 0, ',', '.') }}</p>
                 </div>
+            </div>
+
+            <!-- Quick Stats Row -->
+            <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg shadow-md p-6 mb-8 border border-yellow-200">
+                <p class="text-gray-700 text-sm font-semibold">📊 Today's Bookings: <span class="text-xl font-bold text-orange-600">{{ $todayBookings }}</span></p>
             </div>
 
             <!-- Recent Bookings -->

@@ -97,7 +97,7 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Urutan</label>
                             <select name="sort" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500">
                                 <option value="latest" {{ request('sort', 'latest') === 'latest' ? 'selected' : '' }}>Terbaru</option>
-                                <option value="oldest" {{ request('sort') === 'oldest' ? 'selected' : '' }}>Tertua</option>
+                                <option value="oldest" {{ request('sort') === 'oldest' ? 'selected' : '' }}>Terlama</option>
                             </select>
                         </div>
                         <div class="flex items-end gap-2">

@@ -22,13 +22,14 @@ class AdminDashboardController extends Controller
         $totalCustomers = User::where('role', 'customer')->count();
         $totalServices = Service::count();
         $todayBookings = Booking::where('booking_date', now()->toDateString())->count();
+        $totalRevenue = Booking::where('payment_status', 'paid')->sum('price');
         
         $recentBookings = Booking::with(['user', 'service'])
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
-        return view('admin.dashboard', compact('totalBookings', 'totalCustomers', 'totalServices', 'todayBookings', 'recentBookings'));
+        return view('admin.dashboard', compact('totalBookings', 'totalCustomers', 'totalServices', 'todayBookings', 'totalRevenue', 'recentBookings'));
     }
 
     public function bookings(Request $request)
