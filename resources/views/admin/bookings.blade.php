@@ -108,10 +108,15 @@
                                     <input type="checkbox" class="row-checkbox w-4 h-4" value="{{ $booking->id }}">
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-900">
-                                    <div class="font-semibold">{{ $booking->user?->name ?? 'Unknown' }}</div>
-                                    <div class="text-gray-500 text-xs">{{ $booking->user?->email ?? 'N/A' }}</div>
+                                    @if($booking->customer_name)
+                                        <div class="font-semibold">{{ $booking->customer_name }}</div>
+                                        <div class="text-gray-500 text-xs">{{ $booking->user?->email ?? 'N/A' }}</div>
+                                    @else
+                                        <div class="font-semibold">{{ $booking->user?->name ?? 'Unknown' }}</div>
+                                        <div class="text-gray-500 text-xs">{{ $booking->user?->email ?? 'N/A' }}</div>
+                                    @endif
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->user?->phone ?? '-' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->customer_phone ?? $booking->user?->phone ?? '-' }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->service?->name ?? 'Unknown' }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->booking_date->format('M d, Y') }} at {{ $booking->booking_time }}</td>
                                 <td class="px-6 py-4 text-sm">
@@ -311,11 +316,20 @@
                     }
                 });
                 const customers = await response.json();
-                const select = document.getElementById('bookingCustomer');
-                select.innerHTML = '<option value="">Select Customer</option>' + 
-                    customers.map(c => `<option value="${c.id}">${c.name} - ${c.email}</option>`).join('');
+                const hiddenInput = document.getElementById('bookingCustomer');
+                
+                // Find user@cizy.com and set as default
+                const defaultUser = customers.find(c => c.email === 'user@cizy.com');
+                
+                if (defaultUser) {
+                    hiddenInput.value = defaultUser.id;
+                } else {
+                    console.error('Default user not found');
+                    showToast('Default user (user@cizy.com) not found. Please contact administrator.', 'error');
+                }
             } catch (error) {
                 console.error('Error loading customers:', error);
+                showToast('Error loading customer data', 'error');
             }
         }
 
@@ -389,10 +403,23 @@
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData);
 
-                if (!data.booking_time) {
-                    showToast('Please select a time slot', 'warning');
+                // Validation
+                if (!data.user_id) {
+                    showToast('Error: Customer data tidak ditemukan. Silakan refresh halaman.', 'error');
                     return;
                 }
+
+                if (!data.customer_name || !data.customer_phone) {
+                    showToast('Nama customer dan nomor telepon wajib diisi', 'warning');
+                    return;
+                }
+
+                if (!data.booking_time) {
+                    showToast('Silakan pilih waktu booking', 'warning');
+                    return;
+                }
+
+                console.log('Sending booking data:', data);
 
                 try {
                     const response = await fetch('/admin/bookings/create', {
@@ -406,19 +433,21 @@
                     });
 
                     const result = await response.json();
+                    console.log('Response:', result);
 
                     if (response.ok) {
-                        showToast('Booking created successfully!', 'success');
+                        showToast('Booking berhasil dibuat!', 'success');
                         closeAddBookingModal();
                         setTimeout(() => location.reload(), 1000);
                     } else {
-                        const errorMessage = result.message || 'Failed to create booking';
+                        const errorMessage = result.message || 'Gagal membuat booking';
                         const errorDetails = result.errors ? ': ' + Object.values(result.errors).flat().join(', ') : '';
-                        showToast('Error: ' + errorMessage + errorDetails, 'error', 5000);
+                        const debugInfo = result.error ? ' [Debug: ' + result.error + ']' : '';
+                        showToast('Error: ' + errorMessage + errorDetails + debugInfo, 'error', 8000);
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    showToast('Error creating booking', 'error');
+                    showToast('Error creating booking: ' + error.message, 'error');
                 }
             });
         });
@@ -433,9 +462,19 @@
             <form id="addBookingForm" class="space-y-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-900 mb-2">Customer *</label>
-                    <select id="bookingCustomer" name="user_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                        <option value="">Loading...</option>
-                    </select>
+                    <input type="text" value="Walk-in Customer (user@cizy.com)" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed">
+                    <input type="hidden" id="bookingCustomer" name="user_id" required>
+                    <p class="text-xs text-gray-500 mt-1">Email akan tercatat sebagai user@cizy.com</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Nama Customer *</label>
+                    <input type="text" name="customer_name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Masukkan nama customer">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Nomor Telepon *</label>
+                    <input type="text" name="customer_phone" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Contoh: 081234567890">
                 </div>
 
                 <div>
@@ -465,7 +504,7 @@
 
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p class="text-sm text-blue-800">
-                        <strong>Note:</strong> Booking will be created with status <strong>"Confirmed"</strong> and payment status <strong>"Paid"</strong> (manual payment received).
+                        <strong>Note:</strong> Booking akan dibuat dengan status <strong>"Confirmed"</strong> dan payment status <strong>"Paid"</strong> (pembayaran manual diterima). Email tercatat sebagai <strong>user@cizy.com</strong>, nama dan nomor telepon sesuai dengan yang Anda masukkan.
                     </p>
                 </div>
 
