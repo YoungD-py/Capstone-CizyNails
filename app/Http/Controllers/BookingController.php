@@ -63,21 +63,7 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            // Check if time slot is available
-            $existingBooking = Booking::where('service_id', $validated['service_id'])
-                ->where('booking_date', $validated['booking_date'])
-                ->where('booking_time', $validated['booking_time'])
-                ->where('status', '!=', 'cancelled')
-                ->exists();
-
-            if ($existingBooking) {
-                return response()->json([
-                    'message' => 'This time slot is already booked. Please choose another time.',
-                    'errors' => ['booking_time' => ['This time slot is already booked. Please choose another time.']]
-                ], 422);
-            }
-
-            $service = \App\Models\Service::find($validated['service_id']);
+            $service = \App\Models\Service::with('type')->find($validated['service_id']);
             if (!$service) {
                 return response()->json([
                     'message' => 'Service not found',
@@ -99,32 +85,44 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            if ($service->type === 'nails_art' && $schedule->nails_art_booked >= 2) {
-                return response()->json([
-                    'message' => 'This time slot is fully booked for Nails Art.',
-                    'errors' => ['booking_time' => ['This time slot is fully booked for Nails Art.']]
-                ], 422);
-            }
+            // Check capacity based on TYPE staff_count
+            if ($service->type_id) {
+                // Load Type model directly to avoid conflict with 'type' column
+                $typeModel = \App\Models\Type::find($service->type_id);
+                if ($typeModel) {
+                    $typeStaffCount = $typeModel->staff_count;
+                
+                    // Count all bookings with this TYPE at this time slot
+                    $bookingsWithSameType = Booking::whereHas('service', function ($query) use ($service) {
+                        $query->where('type_id', $service->type_id);
+                    })
+                    ->where('booking_date', $validated['booking_date'])
+                    ->where('booking_time', $validated['booking_time'])
+                    ->where('status', '!=', 'cancelled')
+                    ->count();
 
-            if ($service->type === 'eyelash' && $schedule->eyelash_booked >= 1) {
-                return response()->json([
-                    'message' => 'This time slot is fully booked for Eyelash service.',
-                    'errors' => ['booking_time' => ['This time slot is fully booked for Eyelash service.']]
-                ], 422);
-            }
+                    // Check if we exceed staff capacity
+                    if ($bookingsWithSameType >= $typeStaffCount) {
+                        return response()->json([
+                            'message' => 'This time slot is fully booked. Maximum capacity (' . $typeStaffCount . ' staff) has been reached for this service type.',
+                            'errors' => ['booking_time' => ['This time slot is fully booked for this type.']]
+                        ], 422);
+                    }
+                }
+            } else {
+                // Fallback for legacy services without type_id
+                $countBookingsAtTime = Booking::where('service_id', $validated['service_id'])
+                    ->where('booking_date', $validated['booking_date'])
+                    ->where('booking_time', $validated['booking_time'])
+                    ->whereIn('status', ['pending', 'confirmed', 'completed'])
+                    ->count();
 
-            // Also check capacity based on service staff count
-            $countBookingsAtTime = Booking::where('service_id', $validated['service_id'])
-                ->where('booking_date', $validated['booking_date'])
-                ->where('booking_time', $validated['booking_time'])
-                ->whereIn('status', ['pending', 'confirmed', 'completed'])
-                ->count();
-
-            if ($countBookingsAtTime >= $service->staff_count) {
-                return response()->json([
-                    'message' => 'This time slot is fully booked. Maximum capacity (' . $service->staff_count . ' staff) has been reached.',
-                    'errors' => ['booking_time' => ['This time slot is fully booked for this service.']]
-                ], 422);
+                if ($countBookingsAtTime >= 1) {
+                    return response()->json([
+                        'message' => 'This time slot is already booked.',
+                        'errors' => ['booking_time' => ['This time slot is already booked.']]
+                    ], 422);
+                }
             }
 
             $totalDuration = $service->duration_minutes;
@@ -143,12 +141,6 @@ class BookingController extends Controller
                 'status' => 'pending',
                 'payment_status' => 'pending',
             ]);
-
-            if ($service->type === 'nails_art') {
-                $schedule->increment('nails_art_booked');
-            } else {
-                $schedule->increment('eyelash_booked');
-            }
 
             $midtransService = new MidtransService();
             $transactionResult = $midtransService->createTransaction($booking);
@@ -204,8 +196,9 @@ class BookingController extends Controller
             ->where('time_slot', $booking->booking_time)
             ->first();
 
-        if ($schedule) {
-            if ($booking->service->type === 'nails_art') {
+        if ($schedule && !$booking->service->type_id) {
+            // Only update schedule for legacy services (yang tidak punya type_id)
+            if ($booking->service->getAttribute('type') === 'nails_art') {
                 $schedule->decrement('nails_art_booked');
             } else {
                 $schedule->decrement('eyelash_booked');
@@ -277,7 +270,7 @@ class BookingController extends Controller
                 'date' => 'required|date|after_or_equal:today',
             ]);
 
-            $service = \App\Models\Service::find($validated['service_id']);
+            $service = \App\Models\Service::with('type')->find($validated['service_id']);
             $date = $validated['date'];
 
             // Ensure schedules are generated for this date
@@ -287,7 +280,15 @@ class BookingController extends Controller
                 ->orderBy('time_slot')
                 ->get();
 
+            \Log::info('Available times check', [
+                'service_id' => $validated['service_id'],
+                'date' => $date,
+                'schedules_count' => $schedules->count(),
+                'service_type_id' => $service->type_id
+            ]);
+
             if ($schedules->isEmpty()) {
+                \Log::warning('No schedules found for date', ['date' => $date]);
                 return response()->json(['times' => []]);
             }
 
@@ -310,14 +311,49 @@ class BookingController extends Controller
                     continue;
                 }
 
-                // Check availability based on service staff count
-                $countBookingsAtTime = Booking::where('service_id', $validated['service_id'])
-                    ->where('booking_date', $date)
-                    ->where('booking_time', $formattedTime)
-                    ->whereIn('status', ['pending', 'confirmed', 'completed'])
-                    ->count();
+                // Check availability based on TYPE staff_count
+                $isAvailable = true;
+                if ($service->type_id) {
+                    // Load Type model directly to avoid conflict with 'type' column
+                    $typeModel = \App\Models\Type::find($service->type_id);
+                    if ($typeModel) {
+                        $typeStaffCount = $typeModel->staff_count;
+                        
+                        // Count all bookings with this TYPE at this time slot
+                        $bookingsWithSameType = Booking::whereHas('service', function ($query) use ($service) {
+                            $query->where('type_id', $service->type_id);
+                        })
+                        ->where('booking_date', $date)
+                        ->where('booking_time', $formattedTime)
+                        ->where('status', '!=', 'cancelled')
+                        ->count();
 
-                $isAvailable = $countBookingsAtTime < $service->staff_count;
+                        $isAvailable = $bookingsWithSameType < $typeStaffCount;
+                        
+                        \Log::info('Time slot availability', [
+                            'time' => $formattedTime,
+                            'type_id' => $service->type_id,
+                            'staff_count' => $typeStaffCount,
+                            'bookings_count' => $bookingsWithSameType,
+                            'is_available' => $isAvailable
+                        ]);
+                    }
+                } else {
+                    // Fallback for legacy services
+                    $countBookingsAtTime = Booking::where('service_id', $validated['service_id'])
+                        ->where('booking_date', $date)
+                        ->where('booking_time', $formattedTime)
+                        ->whereIn('status', ['pending', 'confirmed', 'completed'])
+                        ->count();
+                    $isAvailable = $countBookingsAtTime < 1;
+                    
+                    \Log::info('Time slot availability (legacy)', [
+                        'time' => $formattedTime,
+                        'service_id' => $validated['service_id'],
+                        'bookings_count' => $countBookingsAtTime,
+                        'is_available' => $isAvailable
+                    ]);
+                }
 
                 $times[] = [
                     'time' => $formattedTime,
@@ -327,7 +363,12 @@ class BookingController extends Controller
 
             return response()->json(['times' => $times]);
         } catch (\Exception $e) {
-            \Log::error('Error loading available times: ' . $e->getMessage());
+            \Log::error('Error loading available times: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+                'service_id' => $validated['service_id'] ?? null,
+                'date' => $validated['date'] ?? null
+            ]);
             return response()->json(['error' => 'Error loading available times'], 500);
         }
     }
@@ -401,49 +442,62 @@ class BookingController extends Controller
             }
 
             // Check capacity for new schedule
-            if ($service->type === 'nails_art' && $newSchedule->nails_art_booked >= 2) {
-                return response()->json([
-                    'message' => 'Slot waktu ini sudah penuh untuk layanan Nails Art.',
-                    'errors' => ['booking_time' => ['Slot waktu penuh']]
-                ], 422);
+            if ($service->type_id) {
+                // Load Type model directly to avoid conflict with 'type' column
+                $typeModel = \App\Models\Type::find($service->type_id);
+                if ($typeModel) {
+                    $typeStaffCount = $typeModel->staff_count;
+                
+                    // Count all bookings with this TYPE at new time slot (excluding current booking)
+                    $bookingsWithSameType = Booking::whereHas('service', function ($query) use ($service) {
+                        $query->where('type_id', $service->type_id);
+                    })
+                    ->where('booking_date', $validated['booking_date'])
+                    ->where('booking_time', $validated['booking_time'])
+                    ->where('id', '!=', $booking->id)
+                    ->where('status', '!=', 'cancelled')
+                    ->count();
+
+                    if ($bookingsWithSameType >= $typeStaffCount) {
+                        return response()->json([
+                            'message' => 'Slot waktu ini sudah penuh. Kapasitas maksimal (' . $typeStaffCount . ' staff) sudah tercapai untuk tipe layanan ini.',
+                            'errors' => ['booking_time' => ['Slot waktu penuh']]
+                        ], 422);
+                    }
+                }
+            } else {
+                // Fallback for legacy services
+                if ($service->type === 'nails_art' && $newSchedule->nails_art_booked >= 2) {
+                    return response()->json([
+                        'message' => 'Slot waktu ini sudah penuh untuk layanan Nails Art.',
+                        'errors' => ['booking_time' => ['Slot waktu penuh']]
+                    ], 422);
+                }
+
+                if ($service->type === 'eyelash' && $newSchedule->eyelash_booked >= 1) {
+                    return response()->json([
+                        'message' => 'Slot waktu ini sudah penuh untuk layanan Eyelash.',
+                        'errors' => ['booking_time' => ['Slot waktu penuh']]
+                    ], 422);
+                }
             }
 
-            if ($service->type === 'eyelash' && $newSchedule->eyelash_booked >= 1) {
-                return response()->json([
-                    'message' => 'Slot waktu ini sudah penuh untuk layanan Eyelash.',
-                    'errors' => ['booking_time' => ['Slot waktu penuh']]
-                ], 422);
-            }
-
-            // Also check capacity based on service staff count
-            $countBookingsAtNewTime = Booking::where('service_id', $service->id)
-                ->where('booking_date', $validated['booking_date'])
-                ->where('booking_time', $validated['booking_time'])
-                ->where('id', '!=', $booking->id)
-                ->whereIn('status', ['pending', 'confirmed', 'completed'])
-                ->count();
-
-            if ($countBookingsAtNewTime >= $service->staff_count) {
-                return response()->json([
-                    'message' => 'Slot waktu ini sudah penuh. Kapasitas maksimal (' . $service->staff_count . ' staff) sudah tercapai.',
-                    'errors' => ['booking_time' => ['Slot waktu penuh']]
-                ], 422);
-            }
-
-            // Release old schedule slot
-            if ($oldSchedule) {
-                if ($service->type === 'nails_art') {
+            // Release old schedule slot (for backward compatibility only)
+            if ($oldSchedule && !$service->type_id) {
+                if ($service->getAttribute('type') === 'nails_art') {
                     $oldSchedule->decrement('nails_art_booked');
                 } else {
                     $oldSchedule->decrement('eyelash_booked');
                 }
             }
 
-            // Book new schedule slot
-            if ($service->type === 'nails_art') {
-                $newSchedule->increment('nails_art_booked');
-            } else {
-                $newSchedule->increment('eyelash_booked');
+            // Book new schedule slot (for backward compatibility only)
+            if ($newSchedule && !$service->type_id) {
+                if ($service->getAttribute('type') === 'nails_art') {
+                    $newSchedule->increment('nails_art_booked');
+                } else {
+                    $newSchedule->increment('eyelash_booked');
+                }
             }
 
             // Update booking

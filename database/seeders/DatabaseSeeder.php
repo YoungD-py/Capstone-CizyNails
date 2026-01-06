@@ -47,7 +47,6 @@ class DatabaseSeeder extends Seeder
             'subtype' => 'natural',
             'duration_minutes' => 90,
             'price' => 50000,
-            'staff_count' => 2,
             'description' => 'Layanan nail art untuk kuku asli dengan desain custom',
             'is_active' => true,
         ]);
@@ -58,7 +57,6 @@ class DatabaseSeeder extends Seeder
             'subtype' => 'extension',
             'duration_minutes' => 150,
             'price' => 50000,
-            'staff_count' => 2,
             'description' => 'Layanan nail art dengan extension untuk hasil yang lebih panjang',
             'is_active' => true,
         ]);
@@ -69,7 +67,6 @@ class DatabaseSeeder extends Seeder
             'subtype' => null,
             'duration_minutes' => 90,
             'price' => 50000,
-            'staff_count' => 1,
             'description' => 'Layanan eyelash extension profesional',
             'is_active' => true,
         ]);

@@ -5,33 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Service extends Model
+class Subtype extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name',
         'type_id',
-        'subtype_id',
+        'name',
         'description',
-        'image_path',
-        'duration_minutes',
-        'price',
-        'is_active',
     ];
-
-    public function bookings()
-    {
-        return $this->hasMany(Booking::class);
-    }
 
     public function type()
     {
         return $this->belongsTo(Type::class);
     }
 
-    public function subtype()
+    public function services()
     {
-        return $this->belongsTo(Subtype::class);
+        return $this->hasMany(Service::class);
     }
 }

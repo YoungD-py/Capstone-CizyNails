@@ -37,9 +37,12 @@
                 <a href="{{ route('admin.bookings') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
                     Bookings
                 </a>
-                <a href="{{ route('admin.services') }}" class="block px-4 py-2 rounded-lg bg-pink-100 text-pink-600">
-                    Services
-                </a>
+                   <a href="{{ route('admin.types.index') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                       Types
+                   </a>
+                   <a href="{{ route('admin.services') }}" class="block px-4 py-2 rounded-lg bg-pink-100 text-pink-600">
+                       Services
+                   </a>
                 <a href="{{ route('admin.schedules') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
                     Schedules
                 </a>
@@ -85,12 +88,39 @@
                         </div>
                         <p class="text-gray-600 text-sm mb-2">{{ $service->description ?? 'No description' }}</p>
                         <div class="mb-2">
-                            <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                                {{ ucfirst(str_replace('_', ' ', $service->type)) }}
-                            </span>
-                            @if($service->subtype)
+                            @php
+                                $typeDisplay = null;
+                                if ($service->type instanceof \App\Models\Type) {
+                                    $typeDisplay = $service->type->name;
+                                } elseif (!empty($service->type_id)) {
+                                    $typeDisplay = 'Type #' . $service->type_id;
+                                } elseif (!empty($service->getAttribute('type'))) {
+                                    $typeDisplay = ucfirst(str_replace('_', ' ', $service->getAttribute('type')));
+                                }
+
+                                $subtypeDisplay = null;
+                                if ($service->subtype instanceof \App\Models\Subtype) {
+                                    $subtypeDisplay = $service->subtype->name;
+                                } elseif (!empty($service->subtype_id)) {
+                                    $subtypeDisplay = 'Subtype #' . $service->subtype_id;
+                                } elseif (!empty($service->getAttribute('subtype'))) {
+                                    $subtypeDisplay = ucfirst($service->getAttribute('subtype'));
+                                }
+                            @endphp
+
+                            @if($typeDisplay)
+                                <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                                    {{ $typeDisplay }}
+                                </span>
+                            @else
+                                <span class="inline-block px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                                    No type
+                                </span>
+                            @endif
+
+                            @if($subtypeDisplay)
                                 <span class="inline-block px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded ml-1">
-                                    {{ ucfirst($service->subtype) }}
+                                    {{ $subtypeDisplay }}
                                 </span>
                             @endif
                         </div>
@@ -140,22 +170,20 @@
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-900 mb-2">Type *</label>
-                    <select id="serviceType" name="type" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500" onchange="toggleSubtype()">
-                        <option value="">Select Type</option>
-                        <option value="nails_art">Nails Art</option>
-                        <option value="eyelash">Eyelash</option>
-                        <option value="other">Other</option>
+                       <select id="serviceTypeId" name="type_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500" onchange="updateSubtypeOptions()">
+                           <option value="">Select Type (or leave blank for legacy)</option>
+                           @foreach($types as $type)
+                               <option value="{{ $type->id }}">{{ $type->name }}</option>
+                           @endforeach
                     </select>
                 </div>
 
-                <div id="subtypeContainer" class="hidden">
-                    <label class="block text-sm font-semibold text-gray-900 mb-2">Subtype</label>
-                    <select id="serviceSubtype" name="subtype" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500">
-                        <option value="">None</option>
-                        <option value="natural">Natural (Kuku asli)</option>
-                        <option value="extension">Extension</option>
-                    </select>
-                </div>
+                   <div id="subtypeContainer" class="hidden">
+                       <label class="block text-sm font-semibold text-gray-900 mb-2">Subtype</label>
+                       <select id="serviceSubtypeId" name="subtype_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500">
+                           <option value="">Select Subtype</option>
+                       </select>
+                   </div>
                 
                 <div>
                     <label class="block text-sm font-semibold text-gray-900 mb-2">Description</label>
@@ -171,11 +199,6 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-900 mb-2">Duration (minutes) *</label>
                     <input type="number" id="serviceDuration" name="duration_minutes" min="15" max="480" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-900 mb-2">Staff Count *</label>
-                    <input type="number" id="serviceStaffCount" name="staff_count" min="1" max="10" value="1" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500">
                 </div>
                 
                 <div>
@@ -199,16 +222,38 @@
     </div>
 
     <script>
-        function toggleSubtype() {
-            const type = document.getElementById('serviceType').value;
-            const subtypeContainer = document.getElementById('subtypeContainer');
-            if (type === 'nails_art') {
-                subtypeContainer.classList.remove('hidden');
-            } else {
-                subtypeContainer.classList.add('hidden');
-                document.getElementById('serviceSubtype').value = '';
-            }
-        }
+           const allTypes = @json($types);
+       
+           function updateSubtypeOptions(selectedSubtypeId = null) {
+               const typeId = document.getElementById('serviceTypeId').value;
+               const subtypeSelect = document.getElementById('serviceSubtypeId');
+               const subtypeContainer = document.getElementById('subtypeContainer');
+           
+               // Clear current options
+               subtypeSelect.innerHTML = '<option value="">Select Subtype</option>';
+           
+               if (!typeId) {
+                   subtypeContainer.classList.add('hidden');
+                   return;
+               }
+           
+               // Find the selected type and its subtypes
+               const selectedType = allTypes.find(t => t.id == typeId);
+               if (selectedType && selectedType.subtypes && selectedType.subtypes.length > 0) {
+                   selectedType.subtypes.forEach(subtype => {
+                       const option = document.createElement('option');
+                       option.value = subtype.id;
+                       option.textContent = subtype.name;
+                       if (selectedSubtypeId && selectedSubtypeId == subtype.id) {
+                           option.selected = true;
+                       }
+                       subtypeSelect.appendChild(option);
+                   });
+                   subtypeContainer.classList.remove('hidden');
+               } else {
+                   subtypeContainer.classList.add('hidden');
+               }
+           }
 
         function openAddServiceModal() {
             document.getElementById('modalTitle').textContent = 'Add Service';
@@ -216,7 +261,9 @@
             document.getElementById('serviceId').value = 'POST';
             document.getElementById('serviceForm').reset();
             document.getElementById('serviceIsActive').checked = true;
-            document.getElementById('subtypeContainer').classList.add('hidden');
+               document.getElementById('serviceTypeId').value = '';
+               document.getElementById('serviceSubtypeId').value = '';
+               updateSubtypeOptions();
             document.getElementById('serviceImage').value = '';
             document.getElementById('serviceModal').classList.remove('hidden');
         }
@@ -231,16 +278,14 @@
             document.getElementById('serviceId').value = 'PUT';
             
             document.getElementById('serviceName').value = service.name;
-            document.getElementById('serviceType').value = service.type;
-            document.getElementById('serviceSubtype').value = service.subtype || '';
+               document.getElementById('serviceTypeId').value = service.type_id || '';
             document.getElementById('serviceDescription').value = service.description || '';
             document.getElementById('serviceDuration').value = service.duration_minutes;
-            document.getElementById('serviceStaffCount').value = service.staff_count || 1;
             document.getElementById('servicePrice').value = service.price;
             document.getElementById('serviceIsActive').checked = service.is_active;
             document.getElementById('serviceImage').value = '';
             
-            toggleSubtype();
+           updateSubtypeOptions(service.subtype_id || null);
             document.getElementById('serviceModal').classList.remove('hidden');
         }
 

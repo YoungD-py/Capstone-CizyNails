@@ -158,8 +158,15 @@ class AdminDashboardController extends Controller
 
     public function services()
     {
-        $services = Service::paginate(5);
-        return view('admin.services', compact('services'));
+        $services = Service::with('type', 'subtype')->paginate(5);
+        $types = \App\Models\Type::with('subtypes')->get();
+        return view('admin.services', compact('services', 'types'));
+    }
+
+    private function getSubtypesForType($typeId)
+    {
+        if (!$typeId) return [];
+        return \App\Models\Subtype::where('type_id', $typeId)->get();
     }
 
     public function storeService(Request $request)
@@ -167,10 +174,11 @@ class AdminDashboardController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:services,name',
             'description' => 'nullable|string|max:1000',
-            'type' => 'required|in:nails_art,eyelash,other',
-            'subtype' => 'nullable|string|in:natural,extension',
+               'type_id' => 'nullable|exists:types,id',
+               'subtype_id' => 'nullable|exists:subtypes,id',
+               'type' => 'nullable|in:nails_art,eyelash,other',
+               'subtype' => 'nullable|string|in:natural,extension',
             'duration_minutes' => 'required|integer|min:15|max:480',
-            'staff_count' => 'required|integer|min:1|max:10',
             'price' => 'required|numeric|min:0|max:99999999.99',
             'is_active' => 'nullable|boolean',
             'image' => 'nullable|image|max:2048',
@@ -192,10 +200,12 @@ class AdminDashboardController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:services,name,' . $service->id,
             'description' => 'nullable|string|max:1000',
-            'type' => 'required|in:nails_art,eyelash,other',
+            'type_id' => 'nullable|exists:types,id',
+            'subtype_id' => 'nullable|exists:subtypes,id',
+            // legacy fallback
+            'type' => 'nullable|in:nails_art,eyelash,other',
             'subtype' => 'nullable|string|in:natural,extension',
             'duration_minutes' => 'required|integer|min:15|max:480',
-            'staff_count' => 'required|integer|min:1|max:10',
             'price' => 'required|numeric|min:0|max:99999999.99',
             'is_active' => 'nullable|boolean',
             'image' => 'nullable|image|max:2048',
@@ -302,7 +312,7 @@ class AdminDashboardController extends Controller
                 ], 422);
             }
 
-            $service = Service::findOrFail($validated['service_id']);
+            $service = Service::with('type')->findOrFail($validated['service_id']);
 
             // Ensure schedules exist for the selected date
             $this->ensureDailySchedules($validated['booking_date']);
@@ -319,33 +329,46 @@ class AdminDashboardController extends Controller
                 ], 422);
             }
 
-            // Check capacity
-            if ($service->type === 'nails_art' && $schedule->nails_art_booked >= 2) {
-                return response()->json([
-                    'message' => 'Time slot is fully booked for Nails Art',
-                    'errors' => ['booking_time' => ['Time slot is full']]
-                ], 422);
-            }
+            // UPDATED LOGIC: Check staff availability based on TYPE staff_count
+            // Jika service memiliki type_id, hitung total booking dengan TYPE yang sama pada slot waktu yang sama
+            if ($service->type_id) {
+                // Load Type model directly to avoid conflict with 'type' column
+                $typeModel = \App\Models\Type::find($service->type_id);
+                if ($typeModel) {
+                    $typeStaffCount = $typeModel->staff_count;
+                
+                    // Hitung total booking dengan TYPE yang sama pada slot waktu yang sama
+                    $bookingsWithSameType = Booking::whereHas('service', function ($query) use ($service) {
+                        $query->where('type_id', $service->type_id);
+                    })
+                    ->where('booking_date', $validated['booking_date'])
+                    ->where('booking_time', $validated['booking_time'])
+                    ->where('status', '!=', 'cancelled')
+                    ->count();
 
-            if ($service->type === 'eyelash' && $schedule->eyelash_booked >= 1) {
-                return response()->json([
-                    'message' => 'Time slot is fully booked for Eyelash',
-                    'errors' => ['booking_time' => ['Time slot is full']]
-                ], 422);
-            }
+                    // Cek apakah sudah mencapai atau melebihi staff count
+                    if ($bookingsWithSameType >= $typeStaffCount) {
+                        return response()->json([
+                            'message' => 'Time slot is fully booked. Maximum capacity (' . $typeStaffCount . ' staff) has been reached for this service type.',
+                            'errors' => ['booking_time' => ['Time slot is full for this type']]
+                        ], 422);
+                    }
+                }
+            } else {
+                // FALLBACK: Gunakan logic lama untuk backward compatibility (legacy services)
+                if ($service->getAttribute('type') === 'nails_art' && $schedule->nails_art_booked >= 2) {
+                    return response()->json([
+                        'message' => 'Time slot is fully booked for Nails Art',
+                        'errors' => ['booking_time' => ['Time slot is full']]
+                    ], 422);
+                }
 
-            // Also check capacity based on service staff count
-            $countBookingsAtTime = Booking::where('service_id', $validated['service_id'])
-                ->where('booking_date', $validated['booking_date'])
-                ->where('booking_time', $validated['booking_time'])
-                ->where('status', '!=', 'cancelled')
-                ->count();
-
-            if ($countBookingsAtTime >= $service->staff_count) {
-                return response()->json([
-                    'message' => 'Time slot is fully booked. Maximum capacity (' . $service->staff_count . ' staff) has been reached.',
-                    'errors' => ['booking_time' => ['Time slot is full']]
-                ], 422);
+                if ($service->getAttribute('type') === 'eyelash' && $schedule->eyelash_booked >= 1) {
+                    return response()->json([
+                        'message' => 'Time slot is fully booked for Eyelash',
+                        'errors' => ['booking_time' => ['Time slot is full']]
+                    ], 422);
+                }
             }
 
             // Create booking with confirmed and paid status (manual payment received)
@@ -366,11 +389,13 @@ class AdminDashboardController extends Controller
                 'transaction_id' => 'MANUAL-' . time(),  // Manual transaction ID
             ]);
 
-            // Update schedule capacity
-            if ($service->type === 'nails_art') {
-                $schedule->increment('nails_art_booked');
-            } else {
-                $schedule->increment('eyelash_booked');
+            // Update schedule capacity (untuk backward compatibility)
+            if (!$service->type_id) {
+                if ($service->type === 'nails_art') {
+                    $schedule->increment('nails_art_booked');
+                } else {
+                    $schedule->increment('eyelash_booked');
+                }
             }
 
             return response()->json([

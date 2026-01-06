@@ -1,11 +1,11 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\CustomerDashboardController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\NailArtistDashboardController;
+use App\Http\Controllers\TypeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,6 +34,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+    Route::resource('/types', TypeController::class, ['as' => 'admin']);
     Route::get('/bookings', [AdminDashboardController::class, 'bookings'])->name('admin.bookings');
     Route::post('/bookings/create', [AdminDashboardController::class, 'createBooking'])->name('admin.bookings.create');
     Route::get('/api/customers-list', [AdminDashboardController::class, 'getCustomersList'])->name('admin.api.customers');

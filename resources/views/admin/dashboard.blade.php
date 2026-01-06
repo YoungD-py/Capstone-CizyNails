@@ -36,9 +36,12 @@
                 <a href="{{ route('admin.bookings') }}" class="block px-4 py-2 rounded-lg {{ request()->routeIs('admin.bookings') ? 'bg-pink-100 text-pink-600' : 'text-gray-600 hover:bg-gray-100' }}">
                     Bookings
                 </a>
-                <a href="{{ route('admin.services') }}" class="block px-4 py-2 rounded-lg {{ request()->routeIs('admin.services') ? 'bg-pink-100 text-pink-600' : 'text-gray-600 hover:bg-gray-100' }}">
-                    Services
-                </a>
+                   <a href="{{ route('admin.types.index') }}" class="block px-4 py-2 rounded-lg {{ request()->routeIs('admin.types.*') ? 'bg-pink-100 text-pink-600' : 'text-gray-600 hover:bg-gray-100' }}">
+                       Types
+                   </a>
+                   <a href="{{ route('admin.services') }}" class="block px-4 py-2 rounded-lg {{ request()->routeIs('admin.services') ? 'bg-pink-100 text-pink-600' : 'text-gray-600 hover:bg-gray-100' }}">
+                       Services
+                   </a>
                 <a href="{{ route('admin.schedules') }}" class="block px-4 py-2 rounded-lg {{ request()->routeIs('admin.schedules') ? 'bg-pink-100 text-pink-600' : 'text-gray-600 hover:bg-gray-100' }}">
                     Schedules
                 </a>
