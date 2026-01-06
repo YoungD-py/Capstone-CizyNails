@@ -93,7 +93,8 @@
                                 if ($service->type instanceof \App\Models\Type) {
                                     $typeDisplay = $service->type->name;
                                 } elseif (!empty($service->type_id)) {
-                                    $typeDisplay = 'Type #' . $service->type_id;
+                                    $typeModel = \App\Models\Type::find($service->type_id);
+                                    $typeDisplay = $typeModel ? $typeModel->name : 'Unknown Type';
                                 } elseif (!empty($service->getAttribute('type'))) {
                                     $typeDisplay = ucfirst(str_replace('_', ' ', $service->getAttribute('type')));
                                 }
@@ -102,7 +103,8 @@
                                 if ($service->subtype instanceof \App\Models\Subtype) {
                                     $subtypeDisplay = $service->subtype->name;
                                 } elseif (!empty($service->subtype_id)) {
-                                    $subtypeDisplay = 'Subtype #' . $service->subtype_id;
+                                    $subtypeModel = \App\Models\Subtype::find($service->subtype_id);
+                                    $subtypeDisplay = $subtypeModel ? $subtypeModel->name : 'Unknown Subtype';
                                 } elseif (!empty($service->getAttribute('subtype'))) {
                                     $subtypeDisplay = ucfirst($service->getAttribute('subtype'));
                                 }
