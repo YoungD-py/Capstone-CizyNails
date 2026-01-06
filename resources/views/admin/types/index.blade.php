@@ -6,6 +6,7 @@
     <title>Manage Types - Cizy Nails Admin</title>
     <link rel="icon" type="image/jpeg" href="{{ asset('img/cizyLogo.jpeg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ asset('js/toast.js') }}"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -16,7 +17,7 @@
                     <a href="{{ route('admin.dashboard') }}" class="text-2xl font-bold text-pink-600">Cizy Nails Admin</a>
                 </div>
                 <div class="flex gap-4">
-                    <span class="text-gray-600">{{ auth()->user()?->name }}</span>
+                    <span class="text-gray-600">{{ auth()->user()->name }}</span>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="text-gray-600 hover:text-gray-900">Logout</button>
@@ -26,18 +27,29 @@
         </div>
     </nav>
 
-    <!-- Sidebar + Main Content -->
+    <!-- Sidebar Navigation -->
     <div class="flex">
-        <!-- Sidebar -->
-        <div class="w-64 bg-white shadow-md">
-            <div class="p-6">
-                <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">Dashboard</a>
-                <a href="{{ route('admin.types.index') }}" class="block px-4 py-2 rounded-lg bg-pink-100 text-pink-600">Types</a>
-                <a href="{{ route('admin.services') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">Services</a>
-                <a href="{{ route('admin.bookings') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">Bookings</a>
-                <a href="{{ route('admin.schedules') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">Schedules</a>
-                <a href="{{ route('admin.customers') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">Customers</a>
-            </div>
+        <div class="w-64 bg-white shadow-sm min-h-screen">
+            <nav class="p-6 space-y-2">
+                <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                    Dashboard
+                </a>
+                <a href="{{ route('admin.bookings') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                    Bookings
+                </a>
+                <a href="{{ route('admin.types.index') }}" class="block px-4 py-2 rounded-lg bg-pink-100 text-pink-600">
+                    Types
+                </a>
+                <a href="{{ route('admin.services') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                    Services
+                </a>
+                <a href="{{ route('admin.schedules') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                    Schedules
+                </a>
+                <a href="{{ route('admin.customers') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                    Customers
+                </a>
+            </nav>
         </div>
 
         <!-- Main Content -->

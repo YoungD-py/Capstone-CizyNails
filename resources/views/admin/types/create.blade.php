@@ -6,6 +6,7 @@
     <title>Create Type - Cizy Nails Admin</title>
     <link rel="icon" type="image/jpeg" href="{{ asset('img/cizyLogo.jpeg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ asset('js/toast.js') }}"></script>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -16,7 +17,7 @@
                     <a href="{{ route('admin.dashboard') }}" class="text-2xl font-bold text-pink-600">Cizy Nails Admin</a>
                 </div>
                 <div class="flex gap-4">
-                    <span class="text-gray-600">{{ auth()->user()?->name }}</span>
+                    <span class="text-gray-600">{{ auth()->user()->name }}</span>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="text-gray-600 hover:text-gray-900">Logout</button>
@@ -26,18 +27,33 @@
         </div>
     </nav>
 
-        <!-- Quick Admin Nav -->
-        <div class="bg-white shadow-sm border-b">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex gap-4 text-sm">
-                <a href="{{ route('admin.dashboard') }}" class="text-gray-600 hover:text-pink-600">Dashboard</a>
-                <a href="{{ route('admin.types.index') }}" class="text-pink-600 font-semibold">Types</a>
-                <a href="{{ route('admin.services') }}" class="text-gray-600 hover:text-pink-600">Services</a>
-                <a href="{{ route('admin.bookings') }}" class="text-gray-600 hover:text-pink-600">Bookings</a>
-            </div>
+    <!-- Sidebar Navigation -->
+    <div class="flex">
+        <div class="w-64 bg-white shadow-sm min-h-screen">
+            <nav class="p-6 space-y-2">
+                <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                    Dashboard
+                </a>
+                <a href="{{ route('admin.bookings') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                    Bookings
+                </a>
+                <a href="{{ route('admin.types.index') }}" class="block px-4 py-2 rounded-lg bg-pink-100 text-pink-600">
+                    Types
+                </a>
+                <a href="{{ route('admin.services') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                    Services
+                </a>
+                <a href="{{ route('admin.schedules') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                    Schedules
+                </a>
+                <a href="{{ route('admin.customers') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
+                    Customers
+                </a>
+            </nav>
         </div>
 
-    <!-- Main Content -->
-    <div class="max-w-2xl mx-auto p-8">
+        <!-- Main Content -->
+        <div class="flex-1 p-8">
         <div class="bg-white rounded-lg shadow-md p-6">
             <h1 class="text-3xl font-bold mb-6">Create New Type</h1>
 
