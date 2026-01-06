@@ -79,10 +79,10 @@
                             @forelse($upcomingBookings as $booking)
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-6 py-4 text-sm text-gray-900">
-                                        <div class="font-semibold">{{ $booking->user?->name ?? 'Unknown' }}</div>
+                                        <div class="font-semibold">{{ $booking->customer_name ?? $booking->user?->name ?? 'Unknown' }}</div>
                                         <div class="text-gray-500 text-xs">{{ $booking->user?->email ?? 'N/A' }}</div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->user?->phone ?? '-' }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-900">{!! \App\Helpers\WhatsAppHelper::formatPhoneWithLink($booking->customer_phone ?? $booking->user?->phone) !!}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->service?->name ?? 'Unknown' }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         {{ $booking->booking_date->format('M d, Y') }}<br>

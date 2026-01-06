@@ -72,7 +72,7 @@
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $customer->name }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $customer->email }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $customer->phone ?? 'N/A' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900">{!! \App\Helpers\WhatsAppHelper::formatPhoneWithLink($customer->phone) !!}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $customer->bookings->count() }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $customer->created_at->format('M d, Y') }}</td>
                             </tr>

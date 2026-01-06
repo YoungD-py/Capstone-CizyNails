@@ -149,7 +149,7 @@
                                         <div class="text-gray-500 text-xs">{{ $booking->user?->email ?? 'N/A' }}</div>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->customer_phone ?? $booking->user?->phone ?? '-' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900">{!! \App\Helpers\WhatsAppHelper::formatPhoneWithLink($booking->customer_phone ?? $booking->user?->phone) !!}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->service?->name ?? 'Unknown' }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-900">{{ $booking->booking_date->format('M d, Y') }} at {{ $booking->booking_time }}</td>
                                 <td class="px-6 py-4 text-sm">
