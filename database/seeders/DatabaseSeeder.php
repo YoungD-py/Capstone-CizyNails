@@ -71,7 +71,7 @@ class DatabaseSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        $timeSlots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+        $timeSlots = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
         
         for ($day = 0; $day < 30; $day++) {
             $date = Carbon::now()->addDays($day)->toDateString();

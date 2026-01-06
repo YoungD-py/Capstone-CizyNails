@@ -85,24 +85,44 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            // Check capacity based on TYPE staff_count
+            // Check capacity based on TYPE staff_count with duration consideration
             if ($service->type_id) {
                 // Load Type model directly to avoid conflict with 'type' column
                 $typeModel = \App\Models\Type::find($service->type_id);
                 if ($typeModel) {
                     $typeStaffCount = $typeModel->staff_count;
                 
-                    // Count all bookings with this TYPE at this time slot
+                    // Get all bookings with this TYPE on this date
                     $bookingsWithSameType = Booking::whereHas('service', function ($query) use ($service) {
                         $query->where('type_id', $service->type_id);
                     })
                     ->where('booking_date', $validated['booking_date'])
-                    ->where('booking_time', $validated['booking_time'])
                     ->where('status', '!=', 'cancelled')
-                    ->count();
+                    ->get();
+
+                    // Convert booking time to minutes
+                    list($bookHour, $bookMinute) = explode(':', $validated['booking_time']);
+                    $bookTimeInMinutes = $bookHour * 60 + $bookMinute;
+
+                    // Count how many bookings overlap with this time considering their duration
+                    $overlappingCount = 0;
+                    foreach ($bookingsWithSameType as $booking) {
+                        $bookedService = \App\Models\Service::find($booking->service_id);
+                        $duration = $bookedService->duration_minutes ?? 60;
+
+                        // Convert existing booking time to minutes
+                        list($existingHour, $existingMinute) = explode(':', $booking->booking_time);
+                        $existingTimeInMinutes = $existingHour * 60 + $existingMinute;
+                        $bookingEndTimeInMinutes = $existingTimeInMinutes + $duration;
+
+                        // Check if new booking time overlaps with existing booking
+                        if ($existingTimeInMinutes <= $bookTimeInMinutes && $bookTimeInMinutes < $bookingEndTimeInMinutes) {
+                            $overlappingCount++;
+                        }
+                    }
 
                     // Check if we exceed staff capacity
-                    if ($bookingsWithSameType >= $typeStaffCount) {
+                    if ($overlappingCount >= $typeStaffCount) {
                         return response()->json([
                             'message' => 'This time slot is fully booked. Maximum capacity (' . $typeStaffCount . ' staff) has been reached for this service type.',
                             'errors' => ['booking_time' => ['This time slot is fully booked for this type.']]
@@ -111,17 +131,31 @@ class BookingController extends Controller
                 }
             } else {
                 // Fallback for legacy services without type_id
-                $countBookingsAtTime = Booking::where('service_id', $validated['service_id'])
-                    ->where('booking_date', $validated['booking_date'])
-                    ->where('booking_time', $validated['booking_time'])
-                    ->whereIn('status', ['pending', 'confirmed', 'completed'])
-                    ->count();
+                $bookedService = \App\Models\Service::find($validated['service_id']);
+                $duration = $bookedService->duration_minutes ?? 60;
 
-                if ($countBookingsAtTime >= 1) {
-                    return response()->json([
-                        'message' => 'This time slot is already booked.',
-                        'errors' => ['booking_time' => ['This time slot is already booked.']]
-                    ], 422);
+                // Get all bookings for this service on this date
+                $bookingsForService = Booking::where('service_id', $validated['service_id'])
+                    ->where('booking_date', $validated['booking_date'])
+                    ->whereIn('status', ['pending', 'confirmed', 'completed'])
+                    ->get();
+
+                // Convert booking time to minutes
+                list($bookHour, $bookMinute) = explode(':', $validated['booking_time']);
+                $bookTimeInMinutes = $bookHour * 60 + $bookMinute;
+
+                // Check if any booking overlaps with this slot considering duration
+                foreach ($bookingsForService as $booking) {
+                    list($existingHour, $existingMinute) = explode(':', $booking->booking_time);
+                    $existingTimeInMinutes = $existingHour * 60 + $existingMinute;
+                    $bookingEndTimeInMinutes = $existingTimeInMinutes + $duration;
+
+                    if ($existingTimeInMinutes <= $bookTimeInMinutes && $bookTimeInMinutes < $bookingEndTimeInMinutes) {
+                        return response()->json([
+                            'message' => 'This time slot is already booked.',
+                            'errors' => ['booking_time' => ['This time slot is already booked.']]
+                        ], 422);
+                    }
                 }
             }
 
@@ -311,7 +345,7 @@ class BookingController extends Controller
                     continue;
                 }
 
-                // Check availability based on TYPE staff_count
+                // Check availability based on TYPE staff_count with duration consideration
                 $isAvailable = true;
                 if ($service->type_id) {
                     // Load Type model directly to avoid conflict with 'type' column
@@ -319,38 +353,84 @@ class BookingController extends Controller
                     if ($typeModel) {
                         $typeStaffCount = $typeModel->staff_count;
                         
-                        // Count all bookings with this TYPE at this time slot
+                        // Get all bookings with this TYPE on this date
                         $bookingsWithSameType = Booking::whereHas('service', function ($query) use ($service) {
                             $query->where('type_id', $service->type_id);
                         })
                         ->where('booking_date', $date)
-                        ->where('booking_time', $formattedTime)
                         ->where('status', '!=', 'cancelled')
-                        ->count();
+                        ->get();
 
-                        $isAvailable = $bookingsWithSameType < $typeStaffCount;
+                        // Convert current time slot to minutes for comparison
+                        list($slotHour, $slotMinute) = explode(':', $formattedTime);
+                        $slotTimeInMinutes = $slotHour * 60 + $slotMinute;
+
+                        // Count how many bookings overlap with this time slot considering their duration
+                        $overlappingCount = 0;
+                        foreach ($bookingsWithSameType as $booking) {
+                            // Get the booked service's duration
+                            $bookedService = \App\Models\Service::find($booking->service_id);
+                            $duration = $bookedService->duration_minutes ?? 60; // default 60 if not set
+
+                            // Convert booking time to minutes
+                            list($bookHour, $bookMinute) = explode(':', $booking->booking_time);
+                            $bookTimeInMinutes = $bookHour * 60 + $bookMinute;
+                            
+                            // Calculate when this booking ends
+                            $bookingEndTimeInMinutes = $bookTimeInMinutes + $duration;
+
+                            // Check if current slot overlaps with this booking
+                            // Overlap occurs if: booking_start <= slot_time < booking_end
+                            if ($bookTimeInMinutes <= $slotTimeInMinutes && $slotTimeInMinutes < $bookingEndTimeInMinutes) {
+                                $overlappingCount++;
+                            }
+                        }
+
+                        $isAvailable = $overlappingCount < $typeStaffCount;
                         
-                        \Log::info('Time slot availability', [
+                        \Log::info('Time slot availability with duration', [
                             'time' => $formattedTime,
                             'type_id' => $service->type_id,
                             'staff_count' => $typeStaffCount,
-                            'bookings_count' => $bookingsWithSameType,
+                            'overlapping_bookings' => $overlappingCount,
                             'is_available' => $isAvailable
                         ]);
                     }
                 } else {
                     // Fallback for legacy services
-                    $countBookingsAtTime = Booking::where('service_id', $validated['service_id'])
+                    $bookedService = \App\Models\Service::find($validated['service_id']);
+                    $duration = $bookedService->duration_minutes ?? 60;
+
+                    // Get all bookings for this service on this date
+                    $bookingsForService = Booking::where('service_id', $validated['service_id'])
                         ->where('booking_date', $date)
-                        ->where('booking_time', $formattedTime)
                         ->whereIn('status', ['pending', 'confirmed', 'completed'])
-                        ->count();
-                    $isAvailable = $countBookingsAtTime < 1;
+                        ->get();
+
+                    // Convert current time slot to minutes
+                    list($slotHour, $slotMinute) = explode(':', $formattedTime);
+                    $slotTimeInMinutes = $slotHour * 60 + $slotMinute;
+
+                    // Check if any booking overlaps with this slot
+                    $overlapsWithExistingBooking = false;
+                    foreach ($bookingsForService as $booking) {
+                        list($bookHour, $bookMinute) = explode(':', $booking->booking_time);
+                        $bookTimeInMinutes = $bookHour * 60 + $bookMinute;
+                        $bookingEndTimeInMinutes = $bookTimeInMinutes + $duration;
+
+                        if ($bookTimeInMinutes <= $slotTimeInMinutes && $slotTimeInMinutes < $bookingEndTimeInMinutes) {
+                            $overlapsWithExistingBooking = true;
+                            break;
+                        }
+                    }
                     
-                    \Log::info('Time slot availability (legacy)', [
+                    $isAvailable = !$overlapsWithExistingBooking;
+                    
+                    \Log::info('Time slot availability legacy with duration', [
                         'time' => $formattedTime,
                         'service_id' => $validated['service_id'],
-                        'bookings_count' => $countBookingsAtTime,
+                        'duration_minutes' => $duration,
+                        'overlaps' => $overlapsWithExistingBooking,
                         'is_available' => $isAvailable
                     ]);
                 }
@@ -448,17 +528,37 @@ class BookingController extends Controller
                 if ($typeModel) {
                     $typeStaffCount = $typeModel->staff_count;
                 
-                    // Count all bookings with this TYPE at new time slot (excluding current booking)
+                    // Get all bookings with this TYPE on new date (excluding current booking)
                     $bookingsWithSameType = Booking::whereHas('service', function ($query) use ($service) {
                         $query->where('type_id', $service->type_id);
                     })
                     ->where('booking_date', $validated['booking_date'])
-                    ->where('booking_time', $validated['booking_time'])
                     ->where('id', '!=', $booking->id)
                     ->where('status', '!=', 'cancelled')
-                    ->count();
+                    ->get();
 
-                    if ($bookingsWithSameType >= $typeStaffCount) {
+                    // Convert new booking time to minutes
+                    list($newBookHour, $newBookMinute) = explode(':', $validated['booking_time']);
+                    $newBookTimeInMinutes = $newBookHour * 60 + $newBookMinute;
+
+                    // Count how many bookings overlap with new time considering their duration
+                    $overlappingCount = 0;
+                    foreach ($bookingsWithSameType as $existingBooking) {
+                        $bookedService = \App\Models\Service::find($existingBooking->service_id);
+                        $duration = $bookedService->duration_minutes ?? 60;
+
+                        // Convert existing booking time to minutes
+                        list($existingHour, $existingMinute) = explode(':', $existingBooking->booking_time);
+                        $existingTimeInMinutes = $existingHour * 60 + $existingMinute;
+                        $bookingEndTimeInMinutes = $existingTimeInMinutes + $duration;
+
+                        // Check if new booking time overlaps with existing booking
+                        if ($existingTimeInMinutes <= $newBookTimeInMinutes && $newBookTimeInMinutes < $bookingEndTimeInMinutes) {
+                            $overlappingCount++;
+                        }
+                    }
+
+                    if ($overlappingCount >= $typeStaffCount) {
                         return response()->json([
                             'message' => 'Slot waktu ini sudah penuh. Kapasitas maksimal (' . $typeStaffCount . ' staff) sudah tercapai untuk tipe layanan ini.',
                             'errors' => ['booking_time' => ['Slot waktu penuh']]
