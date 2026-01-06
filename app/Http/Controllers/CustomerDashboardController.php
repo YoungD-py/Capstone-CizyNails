@@ -15,6 +15,11 @@ class CustomerDashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        
+        // Jika user tidak ada di session, redirect ke login
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'Session expired. Please login again.');
+        }
 
         // Sync pending payments to avoid stale "pending" after successful payment
         $pendingBookings = $user->bookings()

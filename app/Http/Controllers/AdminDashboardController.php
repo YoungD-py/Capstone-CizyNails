@@ -218,14 +218,24 @@ class AdminDashboardController extends Controller
 
     public function deleteService(Service $service)
     {
-        // Check if service has active bookings
-        if ($service->bookings()->where('status', '!=', 'cancelled')->exists()) {
-            return back()->with('error', 'Cannot delete service with active bookings!');
+        // Hapus semua booking yang terkait dengan service ini
+        $bookingCount = $service->bookings()->count();
+        
+        if ($bookingCount > 0) {
+            // Log informasi tentang booking yang akan dihapus
+            \Log::info('Deleting service with associated bookings', [
+                'service_id' => $service->id,
+                'service_name' => $service->name,
+                'booking_count' => $bookingCount
+            ]);
+            
+            // Hapus semua booking terkait service ini
+            $service->bookings()->delete();
         }
 
         $service->delete();
 
-        return redirect()->route('admin.services')->with('success', 'Service deleted successfully!');
+        return redirect()->route('admin.services')->with('success', 'Service deleted successfully! (' . $bookingCount . ' associated bookings were also deleted)');
     }
 
     public function schedules()

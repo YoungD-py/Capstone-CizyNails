@@ -19,7 +19,7 @@
                     <a href="{{ route('landing') }}" class="text-2xl font-bold text-pink-600">Cizy Nails</a>
                 </div>
                 <div class="flex gap-4">
-                    <span class="text-gray-600">{{ $user->name }}</span>
+                    <span class="text-gray-600">{{ $user?->name ?? 'User' }}</span>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="text-gray-600 hover:text-gray-900">Logout</button>
@@ -37,19 +37,19 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <p class="text-gray-600 text-sm">Name</p>
-                    <p class="text-lg font-semibold">{{ $user->name }}</p>
+                    <p class="text-lg font-semibold">{{ $user?->name ?? 'N/A' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-600 text-sm">Email</p>
-                    <p class="text-lg font-semibold">{{ $user->email }}</p>
+                    <p class="text-lg font-semibold">{{ $user?->email ?? 'N/A' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-600 text-sm">Phone</p>
-                    <p class="text-lg font-semibold">{{ $user->phone ?? 'Not provided' }}</p>
+                    <p class="text-lg font-semibold">{{ $user?->phone ?? 'Not provided' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-600 text-sm">Member Since</p>
-                    <p class="text-lg font-semibold">{{ $user->created_at->format('M d, Y') }}</p>
+                    <p class="text-lg font-semibold">{{ $user?->created_at?->format('M d, Y') ?? 'N/A' }}</p>
                 </div>
             </div>
         </div>
