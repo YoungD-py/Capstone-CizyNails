@@ -24,8 +24,9 @@ class StoreServiceRequest extends FormRequest
         return [
             'name' => 'required|string|max:255|unique:services,name',
             'description' => 'nullable|string|max:1000',
-            'duration' => 'required|integer|min:15|max:480',
+            'duration_minutes' => 'required|integer|min:15|max:480',
             'price' => 'required|numeric|min:0|max:9999.99',
+            'enable_removal' => 'nullable|in:0,1',
         ];
     }
 
@@ -36,9 +37,9 @@ class StoreServiceRequest extends FormRequest
             'name.unique' => 'A service with this name already exists',
             'name.max' => 'Service name cannot exceed 255 characters',
             'description.max' => 'Description cannot exceed 1000 characters',
-            'duration.required' => 'Service duration is required',
-            'duration.min' => 'Duration must be at least 15 minutes',
-            'duration.max' => 'Duration cannot exceed 480 minutes',
+            'duration_minutes.required' => 'Service duration is required',
+            'duration_minutes.min' => 'Duration must be at least 15 minutes',
+            'duration_minutes.max' => 'Duration cannot exceed 480 minutes',
             'price.required' => 'Service price is required',
             'price.numeric' => 'Price must be a valid number',
             'price.min' => 'Price cannot be negative',
