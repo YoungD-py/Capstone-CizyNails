@@ -29,8 +29,9 @@ class ServiceController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255|unique:services,name,' . $service->id,
             'description' => 'nullable|string|max:1000',
-            'duration' => 'sometimes|integer|min:15|max:480',
+            'duration_minutes' => 'sometimes|integer|min:15|max:480',
             'price' => 'sometimes|numeric|min:0|max:9999.99',
+            'enable_removal' => 'nullable|in:0,1',
         ]);
 
         $service->update($validated);
