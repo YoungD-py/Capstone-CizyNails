@@ -80,13 +80,21 @@ class TypeController extends Controller
      */
     public function update(Request $request, Type $type)
     {
+        // Filter out empty subtypes before validation
+        if ($request->has('subtypes')) {
+            $subtypes = array_filter($request->subtypes, function($subtype) {
+                return !empty($subtype['name']);
+            });
+            $request->merge(['subtypes' => array_values($subtypes)]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:types,name,' . $type->id,
             'description' => 'nullable|string',
             'staff_count' => 'required|integer|min:1|max:10',
             'subtypes' => 'nullable|array',
             'subtypes.*.id' => 'nullable|exists:subtypes,id',
-            'subtypes.*.name' => 'required_with:subtypes|string|max:255',
+            'subtypes.*.name' => 'required|string|max:255',
             'subtypes.*.description' => 'nullable|string',
         ]);
 
