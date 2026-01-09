@@ -28,8 +28,8 @@
     </nav>
 
     <!-- Sidebar Navigation -->
-    <div class="flex">
-        <div class="w-64 bg-white shadow-sm min-h-screen">
+    <div class="flex flex-col md:flex-row">
+        <div class="w-full md:w-64 bg-white shadow-sm md:min-h-screen">
             <nav class="p-6 space-y-2">
                 <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 rounded-lg {{ request()->routeIs('admin.dashboard') ? 'bg-pink-100 text-pink-600' : 'text-gray-600 hover:bg-gray-100' }}">
                     Dashboard
@@ -53,7 +53,7 @@
         </div>
 
         <!-- Main Content -->
-        <div class="flex-1 p-8">
+        <div class="flex-1 p-4 md:p-8">
             <h1 class="text-3xl font-bold mb-8">Dashboard</h1>
 
             <!-- Stats Grid -->

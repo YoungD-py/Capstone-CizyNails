@@ -192,21 +192,21 @@
     <!-- Navigation -->
     <nav class="bg-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <div class="flex items-center gap-3">
-                    <img src="{{ asset('img/cizyLogo.jpeg') }}" alt="Cizy Nails Logo" class="h-12 w-12 rounded-full object-cover border-2 border-pink-500">
-                    <h1 class="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">Cizy Nails</h1>
+            <div class="flex justify-between items-center h-16 md:h-20">
+                <div class="flex items-center gap-2 md:gap-3">
+                    <img src="{{ asset('img/cizyLogo.jpeg') }}" alt="Cizy Nails Logo" class="h-10 w-10 md:h-12 md:w-12 rounded-full object-cover border-2 border-pink-500">
+                    <h1 class="text-lg md:text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">Cizy Nails</h1>
                 </div>
-                <div class="flex gap-4 items-center">
+                <div class="flex gap-2 md:gap-4 items-center">
                     @auth
-                        <a href="{{ url('/dashboard') }}" class="text-gray-700 hover:text-pink-600 font-medium transition-colors">Dashboard</a>
+                        <a href="{{ url('/dashboard') }}" class="text-gray-700 hover:text-pink-600 font-medium transition-colors text-sm md:text-base">Dashboard</a>
                         <form method="POST" action="{{ route('logout') }}" class="inline">
                             @csrf
-                            <button type="submit" class="text-gray-700 hover:text-pink-600 font-medium transition-colors">Logout</button>
+                            <button type="submit" class="text-gray-700 hover:text-pink-600 font-medium transition-colors text-sm md:text-base">Logout</button>
                         </form>
                     @else
-                        <a href="{{ route('login') }}" class="text-gray-700 hover:text-pink-600 font-medium transition-colors">Login</a>
-                        <a href="{{ route('register') }}" class="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-6 py-2.5 rounded-full hover:from-pink-700 hover:to-rose-700 font-medium shadow-lg transition-all hover:shadow-xl">Register</a>
+                        <a href="{{ route('login') }}" class="text-gray-700 hover:text-pink-600 font-medium transition-colors text-sm md:text-base">Login</a>
+                        <a href="{{ route('register') }}" class="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-3 py-2 md:px-6 md:py-2.5 rounded-full hover:from-pink-700 hover:to-rose-700 font-medium shadow-lg transition-all hover:shadow-xl text-sm md:text-base">Register</a>
                     @endauth
                 </div>
             </div>
@@ -214,67 +214,67 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="relative bg-gradient-to-br from-pink-500 via-rose-500 to-pink-600 text-white py-24 overflow-hidden">
+    <section class="relative bg-gradient-to-br from-pink-500 via-rose-500 to-pink-600 text-white py-12 md:py-24 overflow-hidden">
         <div class="absolute inset-0 bg-black opacity-10"></div>
         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.05\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 fade-in">
-            <div class="mb-6">
-                <img src="{{ asset('img/cizyLogo.jpeg') }}" alt="Cizy Nails Logo" class="h-24 w-24 rounded-full object-cover border-4 border-white shadow-2xl mx-auto mb-4">
+            <div class="mb-4 md:mb-6">
+                <img src="{{ asset('img/cizyLogo.jpeg') }}" alt="Cizy Nails Logo" class="h-16 w-16 md:h-24 md:w-24 rounded-full object-cover border-4 border-white shadow-2xl mx-auto mb-3 md:mb-4">
             </div>
-            <h2 class="text-5xl md:text-6xl font-bold mb-6 leading-tight">Welcome to Cizy Nails</h2>
-            <p class="text-xl md:text-2xl mb-8 text-pink-100 max-w-3xl mx-auto">Experience premium nail care services with expert nail artists. Book your perfect appointment in just a few clicks!</p>
-            <div class="flex gap-4 justify-center">
-                <a href="#services" class="bg-white text-pink-600 px-8 py-3 rounded-full font-semibold hover:bg-pink-50 transition-all shadow-lg hover:shadow-xl">View Services</a>
-                <a href="#booking" class="border-2 border-white text-white px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-pink-600 transition-all">Book Now</a>
+            <h2 class="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 md:mb-6 leading-tight">Welcome to Cizy Nails</h2>
+            <p class="text-base md:text-xl lg:text-2xl mb-6 md:mb-8 text-pink-100 max-w-3xl mx-auto">Experience premium nail care services with expert nail artists. Book your perfect appointment in just a few clicks!</p>
+            <div class="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center px-4">
+                <a href="#services" class="bg-white text-pink-600 px-6 md:px-8 py-3 rounded-full font-semibold hover:bg-pink-50 transition-all shadow-lg hover:shadow-xl text-sm md:text-base">View Services</a>
+                <a href="#booking" class="border-2 border-white text-white px-6 md:px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-pink-600 transition-all text-sm md:text-base">Book Now</a>
             </div>
         </div>
     </section>
 
     <!-- Features Section -->
-    <section class="py-16 bg-white">
+    <section class="py-8 md:py-16 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                 <div class="text-center fade-in">
-                    <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 md:w-8 md:h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-2 text-gray-800">Quick Booking</h3>
-                    <p class="text-gray-600">Book your appointment in less than 2 minutes with our easy-to-use system</p>
+                    <h3 class="text-lg md:text-xl font-bold mb-2 text-gray-800">Quick Booking</h3>
+                    <p class="text-sm md:text-base text-gray-600">Book your appointment in less than 2 minutes with our easy-to-use system</p>
                 </div>
                 <div class="text-center fade-in" style="animation-delay: 0.2s;">
-                    <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 md:w-8 md:h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-2 text-gray-800">Expert Artists</h3>
-                    <p class="text-gray-600">Our certified nail artists provide professional and quality services</p>
+                    <h3 class="text-lg md:text-xl font-bold mb-2 text-gray-800">Expert Artists</h3>
+                    <p class="text-sm md:text-base text-gray-600">Our certified nail artists provide professional and quality services</p>
                 </div>
                 <div class="text-center fade-in" style="animation-delay: 0.4s;">
-                    <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 md:w-8 md:h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-2 text-gray-800">Premium Quality</h3>
-                    <p class="text-gray-600">We use only high-quality products for the best results</p>
+                    <h3 class="text-lg md:text-xl font-bold mb-2 text-gray-800">Premium Quality</h3>
+                    <p class="text-sm md:text-base text-gray-600">We use only high-quality products for the best results</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-16">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             <!-- Services Section -->
             <div class="lg:col-span-2" id="services">
-                <div class="mb-8">
-                    <h3 class="text-3xl font-bold mb-3 text-gray-800">Our Services</h3>
+                <div class="mb-6 md:mb-8">
+                    <h3 class="text-2xl md:text-3xl font-bold mb-3 text-gray-800">Our Services</h3>
                     <p class="text-gray-600">Choose from our wide range of premium nail care services</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     @forelse($services as $service)
                             <div class="service-card-landing bg-white rounded-xl shadow-md p-6 hover-lift border-2 border-gray-100 cursor-pointer" 
                                 onclick="selectServiceLanding({{ $service->id }}, '{{ $service->name }}', {{ $service->duration_minutes ?? $service->duration }}, '{{ $service->type }}', {{ $service->enable_removal ? 1 : 0 }})"
@@ -317,13 +317,13 @@
             </div>
 
             <!-- Booking Calendar Section -->
-            <div class="bg-white rounded-xl shadow-xl p-6 h-fit sticky top-24 border border-gray-100" id="booking">
-                <h3 class="text-2xl font-bold mb-6 text-gray-800">Book an Appointment</h3>
+            <div class="bg-white rounded-xl shadow-xl p-4 md:p-6 h-fit lg:sticky lg:top-24 border border-gray-100" id="booking">
+                <h3 class="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-gray-800">Book an Appointment</h3>
                 
                 <!-- Selected Service Display -->
-                <div class="mb-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
-                    <p class="text-sm text-gray-600 mb-1 font-medium">Selected Service:</p>
-                    <p class="text-lg font-bold text-blue-600" id="selectedServiceName">Please select a service</p>
+                <div class="mb-4 md:mb-6 p-3 md:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
+                    <p class="text-xs md:text-sm text-gray-600 mb-1 font-medium">Selected Service:</p>
+                    <p class="text-base md:text-lg font-bold text-blue-600" id="selectedServiceName">Please select a service</p>
                     <input type="hidden" id="selectedServiceId" value="">
                 </div>
 
@@ -372,26 +372,26 @@
                 </div>
 
                 <!-- Available Time Slots -->
-                <div id="timeSlotContainer" class="hidden mb-6">
+                <div id="timeSlotContainer" class="hidden mb-4 md:mb-6">
                     <label class="block text-sm font-semibold text-gray-900 mb-3">Available Times</label>
-                    <div id="timeSlots" class="grid grid-cols-3 gap-2">
-                        <p class="col-span-3 text-gray-500 text-sm text-center">Select service and date first</p>
+                    <div id="timeSlots" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <p class="col-span-2 sm:col-span-3 text-gray-500 text-sm text-center">Select service and date first</p>
                     </div>
                     <input type="hidden" id="selectedTime" value="">
                 </div>
 
                 <!-- Book Button -->
                 @auth
-                    <button onclick="continueBooking()" class="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white py-3 rounded-xl hover:from-pink-700 hover:to-rose-700 transition-all font-semibold shadow-lg hover:shadow-xl">
+                    <button onclick="continueBooking()" class="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white py-3 rounded-xl hover:from-pink-700 hover:to-rose-700 transition-all font-semibold shadow-lg hover:shadow-xl text-sm md:text-base">
                         Continue Booking →
                     </button>
                 @else
-                    <button onclick="loginToBook()" class="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white py-3 rounded-xl hover:from-pink-700 hover:to-rose-700 transition-all font-semibold shadow-lg hover:shadow-xl">
+                    <button onclick="loginToBook()" class="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white py-3 rounded-xl hover:from-pink-700 hover:to-rose-700 transition-all font-semibold shadow-lg hover:shadow-xl text-sm md:text-base">
                         Login to Book →
                     </button>
                 @endauth
                 
-                <p class="text-center text-gray-500 text-sm mt-4">Book with confidence - Easy cancellation</p>
+                <p class="text-center text-gray-500 text-xs md:text-sm mt-4">Book with confidence - Easy cancellation</p>
             </div>
         </div>
     </div>

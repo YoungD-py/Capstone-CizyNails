@@ -28,8 +28,8 @@
     </nav>
 
     <!-- Sidebar Navigation -->
-    <div class="flex">
-        <div class="w-64 bg-white shadow-sm min-h-screen">
+    <div class="flex flex-col md:flex-row">
+        <div class="w-full md:w-64 bg-white shadow-sm md:min-h-screen">
             <nav class="p-6 space-y-2">
                 <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
                     Dashboard
@@ -53,7 +53,7 @@
         </div>
 
         <!-- Main Content -->
-        <div class="flex-1 p-8">
+        <div class="flex-1 p-4 md:p-4 md:p-8">
             <div class="flex justify-between items-center mb-8">
                 <h1 class="text-3xl font-bold">Manage Services</h1>
                 <button onclick="openAddServiceModal()" class="bg-pink-600 text-white px-6 py-2 rounded-lg hover:bg-pink-700">

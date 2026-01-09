@@ -31,14 +31,14 @@
     </nav>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <!-- Profile Section -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-2xl font-bold mb-4">My Profile</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-8">
+            <h2 class="text-xl md:text-2xl font-bold mb-4">My Profile</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div>
                     <p class="text-gray-600 text-sm">Name</p>
-                    <p class="text-lg font-semibold">{{ $user?->name ?? 'N/A' }}</p>
+                    <p class="text-base md:text-lg font-semibold">{{ $user?->name ?? 'N/A' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-600 text-sm">Email</p>
@@ -56,10 +56,10 @@
         </div>
 
         <!-- Upcoming Bookings -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Upcoming Appointments</h2>
-                <a href="{{ route('booking.form') }}" class="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700">
+        <div class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <h2 class="text-xl md:text-2xl font-bold">Upcoming Appointments</h2>
+                <a href="{{ route('booking.form') }}" class="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 w-full sm:w-auto text-center">
                     Book New Appointment
                 </a>
             </div>

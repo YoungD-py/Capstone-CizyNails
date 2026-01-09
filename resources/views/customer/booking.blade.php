@@ -43,19 +43,19 @@
     </nav>
 
     <!-- Main Content -->
-    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="bg-white rounded-lg shadow-md p-8">
-            <h1 class="text-3xl font-bold mb-8">Book Your Appointment</h1>
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div class="bg-white rounded-lg shadow-md p-4 md:p-8">
+            <h1 class="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Book Your Appointment</h1>
 
-            <form id="bookingForm" class="space-y-6">
+            <form id="bookingForm" class="space-y-4 md:space-y-6">
                 @csrf
 
                 <!-- Service Selection -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-900 mb-4">Select Service</label>
-                    <div id="serviceCards" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div id="serviceCards" class="grid grid-cols-1 gap-4">
                         @foreach($services as $service)
-                            <div class="service-card border-2 border-gray-200 rounded-xl p-4 cursor-pointer transition-all hover:border-pink-300 hover:shadow-md" 
+                            <div class="service-card border-2 border-gray-200 rounded-xl p-3 md:p-4 cursor-pointer transition-all hover:border-pink-300 hover:shadow-md" 
                                  onclick="selectService({{ $service->id }}, '{{ $service->type }}', {{ $service->duration_minutes }}, {{ $service->enable_removal ? 1 : 0 }})"
                                  data-service-id="{{ $service->id }}"
                                  data-type="{{ $service->type }}"
