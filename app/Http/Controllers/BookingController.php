@@ -103,12 +103,19 @@ class BookingController extends Controller
                     // Convert booking time to minutes
                     list($bookHour, $bookMinute) = explode(':', $validated['booking_time']);
                     $bookTimeInMinutes = $bookHour * 60 + $bookMinute;
+                    
+                    // Calculate total duration for the new booking with removal consideration
+                    $newBookingTotalDuration = $service->duration_minutes;
+                    if ($validated['needs_removal'] ?? false) {
+                        $newBookingTotalDuration += 30;
+                    }
+                    $newBookingEndTimeInMinutes = $bookTimeInMinutes + $newBookingTotalDuration;
 
                     // Count how many bookings overlap with this time considering their duration
                     $overlappingCount = 0;
                     foreach ($bookingsWithSameType as $booking) {
-                        $bookedService = \App\Models\Service::find($booking->service_id);
-                        $duration = $bookedService->duration_minutes ?? 60;
+                        // Use total_duration_minutes if available, otherwise fall back to service duration
+                        $duration = $booking->total_duration_minutes ?? ($booking->service->duration_minutes ?? 60);
 
                         // Convert existing booking time to minutes
                         list($existingHour, $existingMinute) = explode(':', $booking->booking_time);
@@ -143,12 +150,21 @@ class BookingController extends Controller
                 // Convert booking time to minutes
                 list($bookHour, $bookMinute) = explode(':', $validated['booking_time']);
                 $bookTimeInMinutes = $bookHour * 60 + $bookMinute;
+                
+                // Calculate total duration for the new booking with removal consideration
+                $newBookingTotalDuration = $duration;
+                if ($validated['needs_removal'] ?? false) {
+                    $newBookingTotalDuration += 30;
+                }
 
                 // Check if any booking overlaps with this slot considering duration
                 foreach ($bookingsForService as $booking) {
+                    // Use total_duration_minutes if available, otherwise fall back to service duration
+                    $existingDuration = $booking->total_duration_minutes ?? $duration;
+                    
                     list($existingHour, $existingMinute) = explode(':', $booking->booking_time);
                     $existingTimeInMinutes = $existingHour * 60 + $existingMinute;
-                    $bookingEndTimeInMinutes = $existingTimeInMinutes + $duration;
+                    $bookingEndTimeInMinutes = $existingTimeInMinutes + $existingDuration;
 
                     if ($existingTimeInMinutes <= $bookTimeInMinutes && $bookTimeInMinutes < $bookingEndTimeInMinutes) {
                         return response()->json([
@@ -302,10 +318,18 @@ class BookingController extends Controller
             $validated = $request->validate([
                 'service_id' => 'required|exists:services,id',
                 'date' => 'required|date|after_or_equal:today',
+                'needs_removal' => 'nullable|in:0,1',
             ]);
 
             $service = \App\Models\Service::with('type')->find($validated['service_id']);
             $date = $validated['date'];
+            $needsRemoval = $validated['needs_removal'] ?? 0;
+            
+            // Calculate total duration considering removal
+            $totalDuration = $service->duration_minutes;
+            if ($needsRemoval) {
+                $totalDuration += 30;
+            }
 
             // Ensure schedules are generated for this date
             $this->ensureDailySchedules($date);
@@ -317,6 +341,8 @@ class BookingController extends Controller
             \Log::info('Available times check', [
                 'service_id' => $validated['service_id'],
                 'date' => $date,
+                'needs_removal' => $needsRemoval,
+                'total_duration' => $totalDuration,
                 'schedules_count' => $schedules->count(),
                 'service_type_id' => $service->type_id
             ]);
@@ -364,20 +390,23 @@ class BookingController extends Controller
                         // Convert current time slot to minutes for comparison
                         list($slotHour, $slotMinute) = explode(':', $formattedTime);
                         $slotTimeInMinutes = $slotHour * 60 + $slotMinute;
+                        
+                        // Calculate when the new booking would end with total duration
+                        $slotEndTimeInMinutes = $slotTimeInMinutes + $totalDuration;
 
                         // Count how many bookings overlap with this time slot considering their duration
                         $overlappingCount = 0;
                         foreach ($bookingsWithSameType as $booking) {
                             // Get the booked service's duration
                             $bookedService = \App\Models\Service::find($booking->service_id);
-                            $duration = $bookedService->duration_minutes ?? 60; // default 60 if not set
+                            $bookedDuration = $booking->total_duration_minutes ?? ($bookedService->duration_minutes ?? 60); // Use total_duration_minutes if available
 
                             // Convert booking time to minutes
                             list($bookHour, $bookMinute) = explode(':', $booking->booking_time);
                             $bookTimeInMinutes = $bookHour * 60 + $bookMinute;
                             
                             // Calculate when this booking ends
-                            $bookingEndTimeInMinutes = $bookTimeInMinutes + $duration;
+                            $bookingEndTimeInMinutes = $bookTimeInMinutes + $bookedDuration;
 
                             // Check if current slot overlaps with this booking
                             // Overlap occurs if: booking_start <= slot_time < booking_end
@@ -392,6 +421,7 @@ class BookingController extends Controller
                             'time' => $formattedTime,
                             'type_id' => $service->type_id,
                             'staff_count' => $typeStaffCount,
+                            'total_duration' => $totalDuration,
                             'overlapping_bookings' => $overlappingCount,
                             'is_available' => $isAvailable
                         ]);
@@ -399,7 +429,7 @@ class BookingController extends Controller
                 } else {
                     // Fallback for legacy services
                     $bookedService = \App\Models\Service::find($validated['service_id']);
-                    $duration = $bookedService->duration_minutes ?? 60;
+                    $bookedDuration = $bookedService->duration_minutes ?? 60;
 
                     // Get all bookings for this service on this date
                     $bookingsForService = Booking::where('service_id', $validated['service_id'])
@@ -410,13 +440,17 @@ class BookingController extends Controller
                     // Convert current time slot to minutes
                     list($slotHour, $slotMinute) = explode(':', $formattedTime);
                     $slotTimeInMinutes = $slotHour * 60 + $slotMinute;
+                    
+                    // Calculate when the new booking would end with total duration
+                    $slotEndTimeInMinutes = $slotTimeInMinutes + $totalDuration;
 
                     // Check if any booking overlaps with this slot
                     $overlapsWithExistingBooking = false;
                     foreach ($bookingsForService as $booking) {
+                        $existingDuration = $booking->total_duration_minutes ?? $bookedDuration;
                         list($bookHour, $bookMinute) = explode(':', $booking->booking_time);
                         $bookTimeInMinutes = $bookHour * 60 + $bookMinute;
-                        $bookingEndTimeInMinutes = $bookTimeInMinutes + $duration;
+                        $bookingEndTimeInMinutes = $bookTimeInMinutes + $existingDuration;
 
                         if ($bookTimeInMinutes <= $slotTimeInMinutes && $slotTimeInMinutes < $bookingEndTimeInMinutes) {
                             $overlapsWithExistingBooking = true;
@@ -429,7 +463,7 @@ class BookingController extends Controller
                     \Log::info('Time slot availability legacy with duration', [
                         'time' => $formattedTime,
                         'service_id' => $validated['service_id'],
-                        'duration_minutes' => $duration,
+                        'total_duration_minutes' => $totalDuration,
                         'overlaps' => $overlapsWithExistingBooking,
                         'is_available' => $isAvailable
                     ]);
@@ -540,12 +574,16 @@ class BookingController extends Controller
                     // Convert new booking time to minutes
                     list($newBookHour, $newBookMinute) = explode(':', $validated['booking_time']);
                     $newBookTimeInMinutes = $newBookHour * 60 + $newBookMinute;
+                    
+                    // Use the current booking's total_duration_minutes for reschedule
+                    $reschedulingBookingDuration = $booking->total_duration_minutes ?? ($service->duration_minutes ?? 60);
+                    $newBookingEndTimeInMinutes = $newBookTimeInMinutes + $reschedulingBookingDuration;
 
                     // Count how many bookings overlap with new time considering their duration
                     $overlappingCount = 0;
                     foreach ($bookingsWithSameType as $existingBooking) {
-                        $bookedService = \App\Models\Service::find($existingBooking->service_id);
-                        $duration = $bookedService->duration_minutes ?? 60;
+                        // Use total_duration_minutes if available, otherwise fall back to service duration
+                        $duration = $existingBooking->total_duration_minutes ?? ($existingBooking->service->duration_minutes ?? 60);
 
                         // Convert existing booking time to minutes
                         list($existingHour, $existingMinute) = explode(':', $existingBooking->booking_time);
@@ -567,18 +605,38 @@ class BookingController extends Controller
                 }
             } else {
                 // Fallback for legacy services
-                if ($service->type === 'nails_art' && $newSchedule->nails_art_booked >= 2) {
-                    return response()->json([
-                        'message' => 'Slot waktu ini sudah penuh untuk layanan Nails Art.',
-                        'errors' => ['booking_time' => ['Slot waktu penuh']]
-                    ], 422);
-                }
+                $bookedService = $service;
+                $serviceDuration = $bookedService->duration_minutes ?? 60;
 
-                if ($service->type === 'eyelash' && $newSchedule->eyelash_booked >= 1) {
-                    return response()->json([
-                        'message' => 'Slot waktu ini sudah penuh untuk layanan Eyelash.',
-                        'errors' => ['booking_time' => ['Slot waktu penuh']]
-                    ], 422);
+                // Get all bookings for this service on the new date (excluding the current booking)
+                $bookingsForService = Booking::where('service_id', $service->id)
+                    ->where('booking_date', $validated['booking_date'])
+                    ->where('id', '!=', $booking->id)
+                    ->whereIn('status', ['pending', 'confirmed', 'completed'])
+                    ->get();
+
+                // Convert new booking time to minutes
+                list($newBookHour, $newBookMinute) = explode(':', $validated['booking_time']);
+                $newBookTimeInMinutes = $newBookHour * 60 + $newBookMinute;
+                
+                // Use the current booking's total_duration_minutes for reschedule
+                $reschedulingBookingDuration = $booking->total_duration_minutes ?? $serviceDuration;
+
+                // Check if any booking overlaps with new slot considering duration
+                foreach ($bookingsForService as $existingBooking) {
+                    // Use total_duration_minutes if available, otherwise fall back to service duration
+                    $existingDuration = $existingBooking->total_duration_minutes ?? $serviceDuration;
+                    
+                    list($existingHour, $existingMinute) = explode(':', $existingBooking->booking_time);
+                    $existingTimeInMinutes = $existingHour * 60 + $existingMinute;
+                    $bookingEndTimeInMinutes = $existingTimeInMinutes + $existingDuration;
+
+                    if ($existingTimeInMinutes <= $newBookTimeInMinutes && $newBookTimeInMinutes < $bookingEndTimeInMinutes) {
+                        return response()->json([
+                            'message' => 'Slot waktu ini sudah penuh untuk layanan tersebut.',
+                            'errors' => ['booking_time' => ['Slot waktu penuh']]
+                        ], 422);
+                    }
                 }
             }
 
