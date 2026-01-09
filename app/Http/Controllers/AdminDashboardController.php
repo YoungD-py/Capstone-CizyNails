@@ -181,10 +181,12 @@ class AdminDashboardController extends Controller
             'duration_minutes' => 'required|integer|min:15|max:480',
             'price' => 'required|numeric|min:0|max:99999999.99',
             'is_active' => 'nullable|boolean',
+            'enable_removal' => 'nullable|in:0,1',
             'image' => 'nullable|image|max:2048',
         ]);
 
         $validated['is_active'] = $request->has('is_active');
+        $validated['enable_removal'] = $request->input('enable_removal', 0);
 
         if ($request->hasFile('image')) {
             $validated['image_path'] = $request->file('image')->store('services', 'public');
@@ -208,10 +210,12 @@ class AdminDashboardController extends Controller
             'duration_minutes' => 'required|integer|min:15|max:480',
             'price' => 'required|numeric|min:0|max:99999999.99',
             'is_active' => 'nullable|boolean',
+            'enable_removal' => 'nullable|in:0,1',
             'image' => 'nullable|image|max:2048',
         ]);
 
         $validated['is_active'] = $request->has('is_active');
+        $validated['enable_removal'] = $request->input('enable_removal', 0);
 
         if ($request->hasFile('image')) {
             $newPath = $request->file('image')->store('services', 'public');

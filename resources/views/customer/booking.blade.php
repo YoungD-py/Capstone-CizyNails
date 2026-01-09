@@ -56,10 +56,11 @@
                     <div id="serviceCards" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         @foreach($services as $service)
                             <div class="service-card border-2 border-gray-200 rounded-xl p-4 cursor-pointer transition-all hover:border-pink-300 hover:shadow-md" 
-                                 onclick="selectService({{ $service->id }}, '{{ $service->type }}', {{ $service->duration_minutes }})"
+                                 onclick="selectService({{ $service->id }}, '{{ $service->type }}', {{ $service->duration_minutes }}, {{ $service->enable_removal ? 1 : 0 }})"
                                  data-service-id="{{ $service->id }}"
                                  data-type="{{ $service->type }}"
-                                 data-duration="{{ $service->duration_minutes }}">
+                                 data-duration="{{ $service->duration_minutes }}"
+                                 data-enable-removal="{{ $service->enable_removal ? 1 : 0 }}">
                                 <div class="flex items-start gap-3">
                                     @if($service->image_path)
                                         <img src="{{ asset('storage/'.$service->image_path) }}" alt="{{ $service->name }}" class="w-16 h-16 object-cover rounded-lg">
@@ -167,8 +168,9 @@
         let snapToken = null;
         let selectedServiceType = null;
         let selectedServiceDuration = null;
+        let selectedServiceEnableRemoval = false;
 
-        function selectService(serviceId, serviceType, duration) {
+        function selectService(serviceId, serviceType, duration, enableRemoval = 0) {
             // Remove selected class from all cards
             document.querySelectorAll('.service-card').forEach(card => {
                 card.classList.remove('selected');
@@ -184,9 +186,10 @@
             serviceIdInput.value = serviceId;
             selectedServiceType = serviceType;
             selectedServiceDuration = duration;
+            selectedServiceEnableRemoval = enableRemoval;
 
-            // Show/hide removal option
-            if (serviceType === 'nails_art' || serviceType === 'eyelash') {
+            // Show/hide removal option based on service settings
+            if (enableRemoval && (serviceType === 'nails_art' || serviceType === 'eyelash')) {
                 removalOptionContainer.classList.remove('hidden');
                 updateDurationDisplay();
             } else {
