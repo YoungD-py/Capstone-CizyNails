@@ -246,13 +246,8 @@ class BookingController extends Controller
             ->where('time_slot', $booking->booking_time)
             ->first();
 
-        if ($schedule && !$booking->service->type_id) {
-            // Only update schedule for legacy services (yang tidak punya type_id)
-            if ($booking->service->getAttribute('type') === 'nails_art') {
-                $schedule->decrement('nails_art_booked');
-            } else {
-                $schedule->decrement('eyelash_booked');
-            }
+        if ($schedule) {
+            $this->decrementScheduleBooking($schedule, $booking->service);
         }
 
         $booking->update(['status' => 'cancelled']);
@@ -640,22 +635,14 @@ class BookingController extends Controller
                 }
             }
 
-            // Release old schedule slot (for backward compatibility only)
-            if ($oldSchedule && !$service->type_id) {
-                if ($service->getAttribute('type') === 'nails_art') {
-                    $oldSchedule->decrement('nails_art_booked');
-                } else {
-                    $oldSchedule->decrement('eyelash_booked');
-                }
+            // Release old schedule slot
+            if ($oldSchedule) {
+                $this->decrementScheduleBooking($oldSchedule, $service);
             }
 
-            // Book new schedule slot (for backward compatibility only)
-            if ($newSchedule && !$service->type_id) {
-                if ($service->getAttribute('type') === 'nails_art') {
-                    $newSchedule->increment('nails_art_booked');
-                } else {
-                    $newSchedule->increment('eyelash_booked');
-                }
+            // Book new schedule slot
+            if ($newSchedule) {
+                $this->incrementScheduleBooking($newSchedule, $service);
             }
 
             // Update booking
@@ -681,6 +668,50 @@ class BookingController extends Controller
                 'message' => 'Terjadi kesalahan saat reschedule',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Helper method to update schedule booking counts (both legacy and new system)
+     */
+    private function incrementScheduleBooking($schedule, $service)
+    {
+        if (!$schedule) return;
+
+        // Update new type-based system
+        if ($service->type_id) {
+            $schedule->incrementTypeBooking($service->type_id);
+        }
+
+        // Update legacy columns for backward compatibility
+        if (!$service->type_id && $service->getAttribute('type')) {
+            if ($service->getAttribute('type') === 'nails_art') {
+                $schedule->increment('nails_art_booked');
+            } elseif ($service->getAttribute('type') === 'eyelash') {
+                $schedule->increment('eyelash_booked');
+            }
+        }
+    }
+
+    /**
+     * Helper method to decrement schedule booking counts (both legacy and new system)
+     */
+    private function decrementScheduleBooking($schedule, $service)
+    {
+        if (!$schedule) return;
+
+        // Update new type-based system
+        if ($service->type_id) {
+            $schedule->decrementTypeBooking($service->type_id);
+        }
+
+        // Update legacy columns for backward compatibility
+        if (!$service->type_id && $service->getAttribute('type')) {
+            if ($service->getAttribute('type') === 'nails_art') {
+                $schedule->decrement('nails_art_booked');
+            } elseif ($service->getAttribute('type') === 'eyelash') {
+                $schedule->decrement('eyelash_booked');
+            }
         }
     }
 }

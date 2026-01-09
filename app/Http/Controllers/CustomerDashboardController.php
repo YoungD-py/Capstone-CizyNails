@@ -107,11 +107,7 @@ class CustomerDashboardController extends Controller
             ->first();
         
         if ($schedule && $booking->service) {
-            if ($booking->service->type === 'nails_art') {
-                $schedule->decrement('nails_art_booked');
-            } else {
-                $schedule->decrement('eyelash_booked');
-            }
+            $this->decrementScheduleBooking($schedule, $booking->service);
         }
         
         \Log::info('Customer cancelled booking', [
@@ -124,5 +120,27 @@ class CustomerDashboardController extends Controller
             'success' => true,
             'message' => 'Booking cancelled successfully. Note: No refund will be processed.'
         ]);
+    }
+
+    /**
+     * Helper method to decrement schedule booking count
+     */
+    private function decrementScheduleBooking($schedule, $service)
+    {
+        if (!$schedule) return;
+        
+        // Update new type-based system
+        if ($service->type_id) {
+            $schedule->decrementTypeBooking($service->type_id);
+        }
+        
+        // Update legacy columns for backward compatibility
+        if (!$service->type_id && $service->getAttribute('type')) {
+            if ($service->getAttribute('type') === 'nails_art') {
+                $schedule->decrement('nails_art_booked');
+            } elseif ($service->getAttribute('type') === 'eyelash') {
+                $schedule->decrement('eyelash_booked');
+            }
+        }
     }
 }

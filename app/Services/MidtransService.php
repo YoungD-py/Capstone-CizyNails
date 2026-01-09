@@ -158,11 +158,7 @@ class MidtransService
                     ->first();
                 
                 if ($schedule && $booking->service) {
-                    if ($booking->service->type === 'nails_art') {
-                        $schedule->decrement('nails_art_booked');
-                    } else {
-                        $schedule->decrement('eyelash_booked');
-                    }
+                    $this->decrementScheduleBooking($schedule, $booking->service);
                 }
                 
                 \Log::info('Booking payment failed/expired', ['booking_id' => $bookingId, 'reason' => $transactionStatus]);
@@ -224,6 +220,28 @@ class MidtransService
                 'success' => false,
                 'error' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Helper method to decrement schedule booking count
+     */
+    private function decrementScheduleBooking($schedule, $service)
+    {
+        if (!$schedule) return;
+        
+        // Update new type-based system
+        if ($service->type_id) {
+            $schedule->decrementTypeBooking($service->type_id);
+        }
+        
+        // Update legacy columns for backward compatibility
+        if (!$service->type_id && $service->getAttribute('type')) {
+            if ($service->getAttribute('type') === 'nails_art') {
+                $schedule->decrement('nails_art_booked');
+            } elseif ($service->getAttribute('type') === 'eyelash') {
+                $schedule->decrement('eyelash_booked');
+            }
         }
     }
 }

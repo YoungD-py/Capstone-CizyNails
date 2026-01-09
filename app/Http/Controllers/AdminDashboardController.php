@@ -86,11 +86,7 @@ class AdminDashboardController extends Controller
             ->first();
 
         if ($schedule && $booking->service) {
-            if ($booking->service->type === 'nails_art') {
-                $schedule->decrement('nails_art_booked');
-            } else {
-                $schedule->decrement('eyelash_booked');
-            }
+            $this->decrementScheduleBooking($schedule, $booking->service);
         }
 
         \Log::info('Admin cancelled booking', [
@@ -113,11 +109,7 @@ class AdminDashboardController extends Controller
                 ->first();
 
             if ($schedule) {
-                if ($booking->service->type === 'nails_art') {
-                    $schedule->decrement('nails_art_booked');
-                } else {
-                    $schedule->decrement('eyelash_booked');
-                }
+                $this->decrementScheduleBooking($schedule, $booking->service);
             }
         }
 
@@ -142,11 +134,7 @@ class AdminDashboardController extends Controller
                     ->first();
 
                 if ($schedule) {
-                    if ($booking->service->type === 'nails_art') {
-                        $schedule->decrement('nails_art_booked');
-                    } else {
-                        $schedule->decrement('eyelash_booked');
-                    }
+                    $this->decrementScheduleBooking($schedule, $booking->service);
                 }
             }
 
@@ -264,7 +252,10 @@ class AdminDashboardController extends Controller
             ->get()
             ->groupBy('date');
 
-        return view('admin.schedules', compact('schedules'));
+        // Get all types with their staff counts
+        $types = \App\Models\Type::orderBy('name')->get();
+
+        return view('admin.schedules', compact('schedules', 'types'));
     }
 
     public function customers()
@@ -426,14 +417,8 @@ class AdminDashboardController extends Controller
                 'transaction_id' => 'MANUAL-' . time(),  // Manual transaction ID
             ]);
 
-            // Update schedule capacity (untuk backward compatibility)
-            if (!$service->type_id) {
-                if ($service->type === 'nails_art') {
-                    $schedule->increment('nails_art_booked');
-                } else {
-                    $schedule->increment('eyelash_booked');
-                }
-            }
+            // Update schedule capacity
+            $this->incrementScheduleBooking($schedule, $service);
 
             return response()->json([
                 'message' => 'Booking created successfully',
@@ -488,6 +473,50 @@ class AdminDashboardController extends Controller
                     ['date' => $slot['date'], 'time_slot' => $slot['time_slot']],
                     ['nails_art_booked' => 0, 'eyelash_booked' => 0]
                 );
+            }
+        }
+    }
+
+    /**
+     * Helper method to increment schedule booking count
+     */
+    private function incrementScheduleBooking($schedule, $service)
+    {
+        if (!$schedule) return;
+        
+        // Update new type-based system
+        if ($service->type_id) {
+            $schedule->incrementTypeBooking($service->type_id);
+        }
+        
+        // Update legacy columns for backward compatibility
+        if (!$service->type_id && $service->getAttribute('type')) {
+            if ($service->getAttribute('type') === 'nails_art') {
+                $schedule->increment('nails_art_booked');
+            } elseif ($service->getAttribute('type') === 'eyelash') {
+                $schedule->increment('eyelash_booked');
+            }
+        }
+    }
+
+    /**
+     * Helper method to decrement schedule booking count
+     */
+    private function decrementScheduleBooking($schedule, $service)
+    {
+        if (!$schedule) return;
+        
+        // Update new type-based system
+        if ($service->type_id) {
+            $schedule->decrementTypeBooking($service->type_id);
+        }
+        
+        // Update legacy columns for backward compatibility
+        if (!$service->type_id && $service->getAttribute('type')) {
+            if ($service->getAttribute('type') === 'nails_art') {
+                $schedule->decrement('nails_art_booked');
+            } elseif ($service->getAttribute('type') === 'eyelash') {
+                $schedule->decrement('eyelash_booked');
             }
         }
     }

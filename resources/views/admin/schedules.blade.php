@@ -53,52 +53,63 @@
 
         <!-- Main Content -->
         <div class="flex-1 p-4 md:p-8">
-            <div class="flex justify-between items-center mb-8">
-                <h1 class="text-3xl font-bold">Daily Time Slots & Capacity</h1>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <h1 class="text-2xl md:text-3xl font-bold">Daily Time Slots & Capacity</h1>
                 <div class="text-sm text-gray-600">
                     <p>Time slots are auto-generated when customers view available times</p>
-                    <p class="text-xs">Capacity: Nails Art (2 slots) | Eyelash (1 slot) per time</p>
+                    <p class="text-xs">Capacity per type is based on staff_count setting</p>
                 </div>
             </div>
 
             <!-- Schedules by Date -->
             <div class="space-y-6">
                 @forelse($schedules as $date => $timeSlots)
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h2 class="text-xl font-bold mb-4">{{ \Carbon\Carbon::parse($date)->format('l, M d, Y') }}</h2>
+                    <div class="bg-white rounded-lg shadow-md p-4 md:p-6">
+                        <h2 class="text-lg md:text-xl font-bold mb-4">{{ \Carbon\Carbon::parse($date)->format('l, M d, Y') }}</h2>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-4 py-2 text-left">Time Slot</th>
-                                        <th class="px-4 py-2 text-center">Nails Art Booked</th>
-                                        <th class="px-4 py-2 text-center">Eyelash Booked</th>
-                                        <th class="px-4 py-2 text-center">Nails Art Available</th>
-                                        <th class="px-4 py-2 text-center">Eyelash Available</th>
+                                        <th class="px-3 md:px-4 py-2 text-left whitespace-nowrap">Time Slot</th>
+                                        @foreach($types as $type)
+                                            <th class="px-3 md:px-4 py-2 text-center whitespace-nowrap">{{ $type->name }} Booked</th>
+                                            <th class="px-3 md:px-4 py-2 text-center whitespace-nowrap">{{ $type->name }} Available</th>
+                                        @endforeach
+                                        <!-- Legacy columns for backwards compatibility -->
+                                        <th class="px-3 md:px-4 py-2 text-center whitespace-nowrap bg-yellow-50">Legacy Nails</th>
+                                        <th class="px-3 md:px-4 py-2 text-center whitespace-nowrap bg-yellow-50">Legacy Eyelash</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y">
                                     @foreach($timeSlots as $slot)
                                         <tr class="hover:bg-gray-50">
-                                            <td class="px-4 py-3 font-semibold">{{ \Carbon\Carbon::parse($slot->time_slot)->format('H:i') }}</td>
-                                            <td class="px-4 py-3 text-center">
-                                                <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $slot->nails_art_booked >= 2 ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800' }}">
+                                            <td class="px-3 md:px-4 py-3 font-semibold whitespace-nowrap">{{ \Carbon\Carbon::parse($slot->time_slot)->format('H:i') }}</td>
+                                            @foreach($types as $type)
+                                                @php
+                                                    $booked = $slot->getTypeBookedCount($type->id);
+                                                    $capacity = $type->staff_count;
+                                                    $isFull = $booked >= $capacity;
+                                                @endphp
+                                                <td class="px-3 md:px-4 py-3 text-center">
+                                                    <span class="px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-semibold {{ $isFull ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800' }}">
+                                                        {{ $booked }}/{{ $capacity }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-3 md:px-4 py-3 text-center">
+                                                    <span class="px-2 py-1 rounded text-xs {{ !$isFull ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">
+                                                        {{ !$isFull ? 'Yes' : 'Full' }}
+                                                    </span>
+                                                </td>
+                                            @endforeach
+                                            <!-- Legacy columns -->
+                                            <td class="px-3 md:px-4 py-3 text-center bg-yellow-50">
+                                                <span class="px-2 py-1 rounded text-xs text-gray-600">
                                                     {{ $slot->nails_art_booked }}/2
                                                 </span>
                                             </td>
-                                            <td class="px-4 py-3 text-center">
-                                                <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $slot->eyelash_booked >= 1 ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800' }}">
+                                            <td class="px-3 md:px-4 py-3 text-center bg-yellow-50">
+                                                <span class="px-2 py-1 rounded text-xs text-gray-600">
                                                     {{ $slot->eyelash_booked }}/1
-                                                </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-center">
-                                                <span class="px-2 py-1 rounded text-xs {{ $slot->nails_art_booked < 2 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">
-                                                    {{ $slot->nails_art_booked < 2 ? 'Yes' : 'Full' }}
-                                                </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-center">
-                                                <span class="px-2 py-1 rounded text-xs {{ $slot->eyelash_booked < 1 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">
-                                                    {{ $slot->eyelash_booked < 1 ? 'Yes' : 'Full' }}
                                                 </span>
                                             </td>
                                         </tr>
