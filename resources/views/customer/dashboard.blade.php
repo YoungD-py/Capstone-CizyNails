@@ -153,7 +153,7 @@
 
     <!-- Added booking detail modal -->
     <div id="bookingDetailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+        <div id="bookingDetailModalContent" class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[85vh] overflow-y-auto">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold">Booking Details</h2>
@@ -166,10 +166,10 @@
 
                 <div class="flex gap-4 mt-6">
                     <button onclick="downloadBookingDetail()" class="flex-1 bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700">
-                        Download as Image
+                        Download Sebagai Gambar
                     </button>
                     <button onclick="closeBookingDetail()" class="flex-1 bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400">
-                        Close
+                        Tutup
                     </button>
                 </div>
             </div>
@@ -241,76 +241,109 @@
             .then(response => response.json())
             .then(data => {
                 const booking = data.booking;
-                const paymentStatusColor = booking.payment_status === 'paid' ? 'text-blue-600' : 'text-yellow-600';
+                const paymentStatusBadge = booking.payment_status === 'paid' 
+                    ? '<span style="display: inline-block; padding: 4px 12px; background-color: #DBEAFE; color: #1E40AF; border-radius: 9999px; font-size: 0.875rem; font-weight: 600;">Paid</span>'
+                    : '<span style="display: inline-block; padding: 4px 12px; background-color: #FEF3C7; color: #92400E; border-radius: 9999px; font-size: 0.875rem; font-weight: 600;">Unpaid</span>';
+                
+                const statusBadge = booking.status === 'confirmed'
+                    ? '<span style="display: inline-block; padding: 4px 12px; background-color: #D1FAE5; color: #065F46; border-radius: 9999px; font-size: 0.875rem; font-weight: 600;">Confirmed</span>'
+                    : booking.status === 'pending'
+                    ? '<span style="display: inline-block; padding: 4px 12px; background-color: #FEF3C7; color: #92400E; border-radius: 9999px; font-size: 0.875rem; font-weight: 600;">Pending</span>'
+                    : '<span style="display: inline-block; padding: 4px 12px; background-color: #F3F4F6; color: #1F2937; border-radius: 9999px; font-size: 0.875rem; font-weight: 600;">'+booking.status.charAt(0).toUpperCase() + booking.status.slice(1)+'</span>';
                 
                 const html = `
-                    <div id="detailContent" class="space-y-4">
-                        <div class="border-b pb-4">
-                            <h3 class="text-xl font-bold text-pink-600">${booking.service.name}</h3>
+                    <div id="detailContent" style="padding: 32px; background: white; font-family: system-ui, -apple-system, sans-serif; max-width: 650px; margin: 0 auto;">
+                        <!-- Header -->
+                        <div style="text-align: center; padding-bottom: 24px; border-bottom: 3px solid #EC4899; margin-bottom: 28px;">
+                            <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #EC4899; margin-bottom: 8px;">CIZY NAILS</h1>
+                            <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: #1F2937;">Detail Booking</h2>
                         </div>
                         
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <p class="text-gray-600 text-sm">Booking Date</p>
-                                <p class="text-lg font-semibold">${new Date(booking.booking_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-600 text-sm">Booking Time</p>
-                                <p class="text-lg font-semibold">${booking.booking_time}</p>
-                            </div>
+                        <!-- Service Name -->
+                        <div style="background: linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%); padding: 16px 20px; border-radius: 12px; margin-bottom: 24px; text-align: center;">
+                            <h3 style="margin: 0; font-size: 22px; font-weight: 700; color: #BE185D;">${booking.service.name}</h3>
                         </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <p class="text-gray-600 text-sm">Duration</p>
-                                <p class="text-lg font-semibold">${booking.total_duration_minutes} minutes</p>
+                        
+                        <!-- Info Grid -->
+                        <div style="display: grid; gap: 18px; margin-bottom: 24px;">
+                            <!-- Row 1 -->
+                            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: #F9FAFB; border-radius: 8px; align-items: center;">
+                                <span style="font-weight: 600; color: #6B7280; font-size: 14px;">📅 Tanggal Booking</span>
+                                <span style="font-weight: 600; color: #1F2937; font-size: 15px;">${new Date(booking.booking_date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                             </div>
-                            <div>
-                                <p class="text-gray-600 text-sm">Price</p>
-                                <p class="text-lg font-semibold text-pink-600">Rp.${Math.round(parseFloat(booking.price)).toLocaleString('id-ID')}</p>
+                            
+                            <!-- Row 2 -->
+                            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: white; border: 1px solid #E5E7EB; border-radius: 8px; align-items: center;">
+                                <span style="font-weight: 600; color: #6B7280; font-size: 14px;">🕐 Waktu</span>
+                                <span style="font-weight: 600; color: #1F2937; font-size: 15px;">${booking.booking_time} WIB</span>
                             </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <p class="text-gray-600 text-sm">Customer Name</p>
-                                <p class="text-lg font-semibold">${booking.user.name}</p>
+                            
+                            <!-- Row 3 -->
+                            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: #F9FAFB; border-radius: 8px; align-items: center;">
+                                <span style="font-weight: 600; color: #6B7280; font-size: 14px;">⏱️ Durasi</span>
+                                <span style="font-weight: 600; color: #1F2937; font-size: 15px;">${booking.total_duration_minutes} Menit</span>
                             </div>
-                            <div>
-                                <p class="text-gray-600 text-sm">Phone</p>
-                                <p class="text-lg font-semibold">${booking.user.phone || 'Not provided'}</p>
+                            
+                            <!-- Row 4 -->
+                            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: white; border: 1px solid #E5E7EB; border-radius: 8px; align-items: center;">
+                                <span style="font-weight: 600; color: #6B7280; font-size: 14px;">💰 Harga</span>
+                                <span style="font-weight: 700; color: #EC4899; font-size: 17px;">Rp ${Math.round(parseFloat(booking.price)).toLocaleString('id-ID')}</span>
                             </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <p class="text-gray-600 text-sm">Email</p>
-                                <p class="text-lg font-semibold">${booking.user.email}</p>
+                            
+                            <!-- Row 5 -->
+                            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: #F9FAFB; border-radius: 8px; align-items: center;">
+                                <span style="font-weight: 600; color: #6B7280; font-size: 14px;">👤 Nama Customer</span>
+                                <span style="font-weight: 600; color: #1F2937; font-size: 15px;">${booking.user.name}</span>
                             </div>
-                            <div>
-                                <p class="text-gray-600 text-sm">Booking Status</p>
-                                <p class="text-lg font-semibold">${booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</p>
+                            
+                            <!-- Row 6 -->
+                            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: white; border: 1px solid #E5E7EB; border-radius: 8px; align-items: center;">
+                                <span style="font-weight: 600; color: #6B7280; font-size: 14px;">📱 Nomor Telepon</span>
+                                <span style="font-weight: 600; color: #1F2937; font-size: 15px;">${booking.user.phone || 'Tidak tersedia'}</span>
                             </div>
+                            
+                            <!-- Row 7 -->
+                            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: #F9FAFB; border-radius: 8px; align-items: center;">
+                                <span style="font-weight: 600; color: #6B7280; font-size: 14px;">📧 Email</span>
+                                <span style="font-weight: 600; color: #1F2937; font-size: 14px;">${booking.user.email}</span>
+                            </div>
+                            
+                            <!-- Row 8 -->
+                            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: white; border: 1px solid #E5E7EB; border-radius: 8px; align-items: center;">
+                                <span style="font-weight: 600; color: #6B7280; font-size: 14px;">📊 Status Booking</span>
+                                <div>${statusBadge}</div>
+                            </div>
+                            
+                            <!-- Row 9 -->
+                            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: #F9FAFB; border-radius: 8px; align-items: center;">
+                                <span style="font-weight: 600; color: #6B7280; font-size: 14px;">💳 Status Pembayaran</span>
+                                <div>${paymentStatusBadge}</div>
+                            </div>
+                            
+                            ${booking.needs_removal ? `
+                            <!-- Row Additional Service -->
+                            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: white; border: 1px solid #E5E7EB; border-radius: 8px; align-items: center;">
+                                <span style="font-weight: 600; color: #6B7280; font-size: 14px;">✨ Layanan Tambahan</span>
+                                <span style="font-weight: 600; color: #1F2937; font-size: 15px;">Removal (+30 menit)</span>
+                            </div>
+                            ` : ''}
+                            
+                            ${booking.notes ? `
+                            <!-- Row Notes -->
+                            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 14px 16px; background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px; align-items: center;">
+                                <span style="font-weight: 600; color: #92400E; font-size: 14px;">📝 Catatan</span>
+                                <span style="font-weight: 500; color: #78350F; font-size: 14px; line-height: 1.6;">${booking.notes}</span>
+                            </div>
+                            ` : ''}
                         </div>
-
-                        <div>
-                            <p class="text-gray-600 text-sm">Payment Status</p>
-                            <p class="text-lg font-semibold ${paymentStatusColor}">${booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}</p>
+                        
+                        <!-- Footer -->
+                        <div style="margin-top: 32px; padding-top: 20px; border-top: 2px solid #E5E7EB; text-align: center;">
+                            <p style="margin: 0; font-size: 13px; color: #6B7280; line-height: 1.6;">
+                                Terima kasih telah mempercayai Cizy Nails.<br>
+                                Untuk informasi lebih lanjut, hubungi kami.
+                            </p>
                         </div>
-
-                        ${booking.notes ? `
-                        <div>
-                            <p class="text-gray-600 text-sm">Notes</p>
-                            <p class="text-lg font-semibold">${booking.notes}</p>
-                        </div>
-                        ` : ''}
-
-                        ${booking.needs_removal ? `
-                        <div>
-                            <p class="text-gray-600 text-sm">Additional Service</p>
-                            <p class="text-lg font-semibold">Removal included (+30 minutes)</p>
-                        </div>
-                        ` : ''}
                     </div>
                 `;
                 
@@ -329,19 +362,50 @@
 
         function downloadBookingDetail() {
             const element = document.getElementById('detailContent');
-            const opt = {
-                margin: 10,
-                filename: 'booking-detail.png',
-                image: { type: 'png' },
-                html2canvas: { scale: 2 },
-                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            const modal = document.getElementById('bookingDetailModalContent');
+            
+            // Simpan style asli modal
+            const originalMaxHeight = modal.style.maxHeight;
+            const originalOverflow = modal.style.overflow;
+            
+            // Hilangkan batasan tinggi dan overflow untuk screenshot penuh
+            modal.style.maxHeight = 'none';
+            modal.style.overflow = 'visible';
+            
+            // Konfigurasi html2canvas dengan pengaturan optimal
+            const options = {
+                scale: 2, // Kualitas gambar yang seimbang
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                logging: false,
+                width: element.scrollWidth,
+                height: element.scrollHeight,
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight,
+                scrollY: -window.scrollY,
+                scrollX: -window.scrollX
             };
 
-            html2canvas(element, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+            // Capture dan download
+            html2canvas(element, options).then(canvas => {
+                // Kembalikan style asli modal
+                modal.style.maxHeight = originalMaxHeight;
+                modal.style.overflow = originalOverflow;
+                
+                // Convert canvas ke image dan download
                 const link = document.createElement('a');
                 link.href = canvas.toDataURL('image/png');
                 link.download = `booking-detail-${new Date().getTime()}.png`;
                 link.click();
+                
+                showToast('Detail booking berhasil didownload!', 'success');
+            }).catch(error => {
+                // Kembalikan style asli modal jika error
+                modal.style.maxHeight = originalMaxHeight;
+                modal.style.overflow = originalOverflow;
+                
+                console.error('Error generating image:', error);
+                showToast('Gagal mendownload gambar. Silakan coba lagi.', 'error');
             });
         }
 
