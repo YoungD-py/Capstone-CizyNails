@@ -209,6 +209,20 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-3">Enable Removal Option</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" id="enableRemovalNo" name="enable_removal" value="0" checked class="mr-2">
+                            <span class="text-sm text-gray-700">No</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" id="enableRemovalYes" name="enable_removal" value="1" class="mr-2">
+                            <span class="text-sm text-gray-700">Yes</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
                     <label class="flex items-center">
                         <input type="checkbox" id="serviceIsActive" name="is_active" value="1" checked class="mr-2">
                         <span class="text-sm font-semibold text-gray-900">Active</span>
@@ -263,9 +277,11 @@
             document.getElementById('serviceId').value = 'POST';
             document.getElementById('serviceForm').reset();
             document.getElementById('serviceIsActive').checked = true;
-               document.getElementById('serviceTypeId').value = '';
-               document.getElementById('serviceSubtypeId').value = '';
-               updateSubtypeOptions();
+            document.getElementById('enableRemovalNo').checked = true;
+            document.getElementById('enableRemovalYes').checked = false;
+            document.getElementById('serviceTypeId').value = '';
+            document.getElementById('serviceSubtypeId').value = '';
+            updateSubtypeOptions();
             document.getElementById('serviceImage').value = '';
             document.getElementById('serviceModal').classList.remove('hidden');
         }
@@ -280,14 +296,16 @@
             document.getElementById('serviceId').value = 'PUT';
             
             document.getElementById('serviceName').value = service.name;
-               document.getElementById('serviceTypeId').value = service.type_id || '';
+            document.getElementById('serviceTypeId').value = service.type_id || '';
             document.getElementById('serviceDescription').value = service.description || '';
             document.getElementById('serviceDuration').value = service.duration_minutes;
             document.getElementById('servicePrice').value = service.price;
             document.getElementById('serviceIsActive').checked = service.is_active;
+            document.getElementById('enableRemovalNo').checked = !service.enable_removal;
+            document.getElementById('enableRemovalYes').checked = !!service.enable_removal;
             document.getElementById('serviceImage').value = '';
             
-           updateSubtypeOptions(service.subtype_id || null);
+            updateSubtypeOptions(service.subtype_id || null);
             document.getElementById('serviceModal').classList.remove('hidden');
         }
 
