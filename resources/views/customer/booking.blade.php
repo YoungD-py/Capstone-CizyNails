@@ -188,8 +188,10 @@
             // Show/hide removal option
             if (serviceType === 'nails_art' || serviceType === 'eyelash') {
                 removalOptionContainer.classList.remove('hidden');
+                updateDurationDisplay();
             } else {
                 removalOptionContainer.classList.add('hidden');
+                durationInfo.textContent = '';
             }
 
             // Reload available times if date is already selected
@@ -198,9 +200,18 @@
             }
         }
 
+        function updateDurationDisplay() {
+            if (!selectedServiceDuration) return;
+            
+            const needsRemoval = document.querySelector('input[name="needs_removal"]:checked').value === '1';
+            const totalDuration = needsRemoval ? selectedServiceDuration + 30 : selectedServiceDuration;
+            durationInfo.textContent = `Total duration: ${totalDuration} minutes`;
+        }
+
         async function loadAvailableTimes() {
             const serviceId = serviceIdInput.value;
             const date = dateInput.value;
+            const needsRemoval = document.querySelector('input[name="needs_removal"]:checked').value === '1' ? 1 : 0;
 
             if (!serviceId || !date) {
                 timeSlotsDiv.innerHTML = '<p class="text-gray-500 text-sm">Select a service and date first</p>';
@@ -208,7 +219,7 @@
             }
 
             try {
-                const response = await fetch(`/api/bookings/available-times?service_id=${serviceId}&date=${date}`, {
+                const response = await fetch(`/api/bookings/available-times?service_id=${serviceId}&date=${date}&needs_removal=${needsRemoval}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -253,11 +264,11 @@
 
         document.querySelectorAll('input[name="needs_removal"]').forEach(radio => {
             radio.addEventListener('change', () => {
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                const baseDuration = parseInt(selectedOption.dataset.duration);
-                const needsRemoval = document.querySelector('input[name="needs_removal"]:checked').value === '1';
-                const totalDuration = needsRemoval ? baseDuration + 30 : baseDuration;
-                durationInfo.textContent = `Total duration: ${totalDuration} minutes`;
+                updateDurationDisplay();
+                // Reload available times when removal option changes
+                if (dateInput.value) {
+                    loadAvailableTimes();
+                }
             });
         });
 
