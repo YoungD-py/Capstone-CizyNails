@@ -617,5 +617,58 @@
             }, null, { title: 'Reschedule Appointment', confirmText: 'Yes, Reschedule', type: 'warning' });
         });
     </script>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center gap-3 mb-4">
+                        <img src="{{ asset('img/cizyLogo.jpeg') }}" alt="Cizy Nails Logo" class="h-12 w-12 rounded-full object-cover border-2 border-pink-500">
+                        <h3 class="text-2xl font-bold">Cizy Nails</h3>
+                    </div>
+                    <p class="text-gray-400 mb-4">Experience premium nail care services with expert nail artists. Your beauty is our passion.</p>
+                    <div class="flex gap-4">
+                        <a href="https://www.instagram.com/cizy.nails/" class="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center hover:bg-pink-700 transition-colors" aria-label="Instagram Cizy Nails">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z"/></svg>
+                        </a>
+                        <a href="https://api.whatsapp.com/send?phone=6281210005103" class="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center hover:bg-pink-700 transition-colors" aria-label="WhatsApp Cizy Nails">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.004 2.003c-5.514 0-9.98 4.466-9.98 9.98 0 1.76.461 3.478 1.34 4.99L2 22l5.16-1.342a9.94 9.94 0 004.844 1.285h.002c5.514 0 9.98-4.466 9.98-9.98 0-2.666-1.04-5.172-2.928-7.06a9.93 9.93 0 00-7.054-2.9zm5.863 14.436c-.25.7-1.23 1.283-2.02 1.454-.54.116-1.24.208-3.61-.774-3.03-1.258-4.974-4.35-5.127-4.552-.15-.2-1.22-1.624-1.22-3.095 0-1.47.77-2.192 1.04-2.49.27-.3.59-.375.79-.375.2 0 .4 0 .57.01.18.01.42-.07.66.5.25.6.84 2.07.91 2.22.07.15.12.32.02.52-.1.2-.15.32-.3.49-.15.17-.32.38-.46.51-.15.13-.3.28-.13.55.17.27.76 1.24 1.63 2.01 1.12.99 2.07 1.3 2.37 1.45.3.15.47.13.64-.08.17-.21.74-.86.94-1.15.2-.29.4-.24.67-.14.27.1 1.74.82 2.04.97.3.15.5.22.57.34.07.12.07.72-.18 1.42z"/></svg>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="{{ route('dashboard') }}" class="hover:text-pink-500 transition-colors">Dashboard</a></li>
+                        <li><a href="{{ route('booking.form') }}" class="hover:text-pink-500 transition-colors">Book Now</a></li>
+                        <li><a href="{{ route('profile.edit') }}" class="hover:text-pink-500 transition-colors">Edit Profile</a></li>
+                        <li><a href="{{ route('landing') }}" class="hover:text-pink-500 transition-colors">Home</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Contact</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-pink-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span>Jl. Sunter Kemayoran No.7, RT.3/RW.5,Jakarta Utara</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-pink-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                            </svg>
+                            <span>+62 812-1000-5103</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 pt-8 text-center text-gray-400">
+                <p>&copy; 2026 Cizy Nails. All rights reserved. Made with ❤️ for beautiful nails.</p>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
