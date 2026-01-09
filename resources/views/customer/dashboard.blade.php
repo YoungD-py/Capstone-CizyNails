@@ -18,8 +18,9 @@
                 <div class="flex items-center">
                     <a href="{{ route('landing') }}" class="text-2xl font-bold text-pink-600">Cizy Nails</a>
                 </div>
-                <div class="flex gap-4">
+                <div class="flex gap-4 items-center">
                     <span class="text-gray-600">{{ $user?->name ?? 'User' }}</span>
+                    <a href="{{ route('profile.edit') }}" class="text-gray-600 hover:text-pink-600 transition">Edit Profile</a>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="text-gray-600 hover:text-gray-900">Logout</button>

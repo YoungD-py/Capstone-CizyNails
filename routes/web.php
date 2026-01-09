@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\NailArtistDashboardController;
 use App\Http\Controllers\TypeController;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,6 +31,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [CustomerDashboardController::class, 'index'])->name('dashboard');
     Route::get('/booking', [CustomerDashboardController::class, 'bookingForm'])->name('booking.form');
     Route::post('/bookings/{id}/cancel', [CustomerDashboardController::class, 'cancelBooking'])->name('customer.cancel-booking');
+    Route::get('/profile/edit', [UserController::class, 'showEditProfile'])->name('profile.edit');
+    Route::put('/profile/update', [UserController::class, 'updateProfileWeb'])->name('profile.update');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
