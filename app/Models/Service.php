@@ -18,6 +18,11 @@ class Service extends Model
         'duration_minutes',
         'price',
         'is_active',
+        'enable_removal',
+    ];
+
+    protected $casts = [
+        'enable_removal' => 'boolean',
     ];
 
     public function bookings()
