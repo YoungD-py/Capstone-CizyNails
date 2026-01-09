@@ -154,6 +154,9 @@
     </div>
 
     <script>
+        // Check if there's booking intent from session
+        const bookingIntent = @json(session('booking_intent'));
+        
         const serviceIdInput = document.getElementById('serviceId');
         const dateInput = document.getElementById('bookingDate');
         const timeSlotsDiv = document.getElementById('timeSlots');
@@ -361,8 +364,49 @@
             window.location.href = '{{ route("dashboard") }}';
         });
 
-        // Load times on page load if date is pre-filled
-        if (dateInput.value) {
+        // Auto-fill from booking intent if available
+        if (bookingIntent && bookingIntent.service_id) {
+            // Find and select the service
+            const serviceCard = document.querySelector(`.service-card[data-service-id="${bookingIntent.service_id}"]`);
+            if (serviceCard) {
+                const serviceType = serviceCard.dataset.type;
+                const duration = parseInt(serviceCard.dataset.duration);
+                const enableRemoval = parseInt(serviceCard.dataset.enableRemoval);
+                selectService(bookingIntent.service_id, serviceType, duration, enableRemoval);
+            }
+            
+            // Set date if provided
+            if (bookingIntent.date) {
+                dateInput.value = bookingIntent.date;
+            }
+
+            // Apply removal option if provided
+            if (typeof bookingIntent.needs_removal !== 'undefined') {
+                const removalRadio = document.querySelector(`input[name="needs_removal"][value="${bookingIntent.needs_removal}"]`);
+                if (removalRadio) {
+                    removalRadio.checked = true;
+                }
+            }
+            
+            // Load available times and auto-select time after a brief delay
+            if (bookingIntent.date && bookingIntent.service_id) {
+                setTimeout(async () => {
+                    await loadAvailableTimes();
+                    
+                    // Ensure duration info is updated if removal is visible
+                    updateDurationDisplay();
+
+                    // Auto-select the time slot if provided
+                    if (bookingIntent.time) {
+                        const timeSlot = document.querySelector(`.time-slot[data-time="${bookingIntent.time}"]`);
+                        if (timeSlot && !timeSlot.disabled) {
+                            timeSlot.click();
+                        }
+                    }
+                }, 500);
+            }
+        } else if (dateInput.value) {
+            // Load times on page load if date is pre-filled (fallback)
             loadAvailableTimes();
         }
     </script>

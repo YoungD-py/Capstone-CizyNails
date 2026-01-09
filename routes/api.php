@@ -21,6 +21,20 @@ use App\Http\Controllers\ScheduleController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+// Save booking intent for guest users
+Route::post('/save-booking-intent', function (Request $request) {
+    session([
+        'booking_intent' => [
+            'service_id' => $request->input('service_id'),
+            'date' => $request->input('date'),
+            'time' => $request->input('time'),
+            'needs_removal' => $request->input('needs_removal', 0),
+        ]
+    ]);
+    
+    return response()->json(['success' => true]);
+});
+
 
 Route::get('/bookings/available-times', [BookingController::class, 'getAvailableTimes']);
 

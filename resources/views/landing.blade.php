@@ -3,10 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Cizy Nails - Book Your Appointment</title>
     <link rel="icon" type="image/jpeg" href="{{ asset('img/cizyLogo.jpeg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        .service-card-landing {
+            position: relative;
+        }
+        .service-card-landing.selected {
+            border-color: #ec4899;
+            background-color: #fdf2f8;
+            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.2);
+        }
+        .service-card-landing .checkmark {
+            display: none;
+        }
+        .service-card-landing.selected .checkmark {
+            display: block;
+        }
+        .time-slot {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .time-slot:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+        .time-slot:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .time-slot.selected {
+            background-color: #ec4899 !important;
+            color: white !important;
+            border-color: #ec4899 !important;
+        }
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -245,7 +276,17 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     @forelse($services as $service)
-                        <div class="bg-white rounded-xl shadow-md p-6 hover-lift border border-gray-100">
+                            <div class="service-card-landing bg-white rounded-xl shadow-md p-6 hover-lift border-2 border-gray-100 cursor-pointer" 
+                                onclick="selectServiceLanding({{ $service->id }}, '{{ $service->name }}', {{ $service->duration_minutes ?? $service->duration }}, '{{ $service->type }}', {{ $service->enable_removal ? 1 : 0 }})"
+                                data-service-id="{{ $service->id }}"
+                                data-duration="{{ $service->duration_minutes ?? $service->duration }}"
+                                data-type="{{ $service->type }}"
+                                data-enable-removal="{{ $service->enable_removal ? 1 : 0 }}">
+                            <div class="checkmark hidden absolute top-3 right-3 bg-pink-600 text-white rounded-full p-2 shadow-lg z-10">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
                             <div class="mb-4 overflow-hidden rounded-lg border border-gray-100">
                                 <img src="{{ $service->image_path ? asset('storage/'.$service->image_path) : asset('img/cizyLogo.jpeg') }}" alt="{{ $service->name }}" class="w-full h-44 object-cover">
                             </div>
@@ -261,7 +302,6 @@
                             <p class="text-gray-600 text-sm mb-4 leading-relaxed">{{ $service->description }}</p>
                             <div class="flex justify-between items-center pt-4 border-t border-gray-100">
                                 <span class="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">Rp {{ number_format($service->price, 0, ',', '.') }}</span>
-                                <button class="text-pink-600 hover:text-pink-700 font-medium text-sm">View Details →</button>
                             </div>
                         </div>
                     @empty
@@ -280,6 +320,13 @@
             <div class="bg-white rounded-xl shadow-xl p-6 h-fit sticky top-24 border border-gray-100" id="booking">
                 <h3 class="text-2xl font-bold mb-6 text-gray-800">Book an Appointment</h3>
                 
+                <!-- Selected Service Display -->
+                <div class="mb-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
+                    <p class="text-sm text-gray-600 mb-1 font-medium">Selected Service:</p>
+                    <p class="text-lg font-bold text-blue-600" id="selectedServiceName">Please select a service</p>
+                    <input type="hidden" id="selectedServiceId" value="">
+                </div>
+
                 <!-- Calendar -->
                 <div class="mb-6">
                     <div class="flex justify-between items-center mb-4 bg-gradient-to-r from-pink-50 to-rose-50 p-3 rounded-lg">
@@ -309,15 +356,39 @@
                     <p class="text-lg font-bold text-pink-600" id="selectedDate">Please select a date</p>
                 </div>
 
+                <!-- Removal Option (only for eligible services) -->
+                <div id="removalOptionLanding" class="hidden mb-6 p-4 border border-gray-200 rounded-xl bg-gray-50">
+                    <p class="text-sm font-semibold text-gray-900 mb-3">Removal Option</p>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="needs_removal_landing" value="0" checked class="mr-2">
+                            <span class="text-gray-700">No removal needed</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="needs_removal_landing" value="1" class="mr-2">
+                            <span class="text-gray-700">Ada nail/eyelash lama perlu di-remove <span class="text-pink-600 font-semibold">+30 min</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Available Time Slots -->
+                <div id="timeSlotContainer" class="hidden mb-6">
+                    <label class="block text-sm font-semibold text-gray-900 mb-3">Available Times</label>
+                    <div id="timeSlots" class="grid grid-cols-3 gap-2">
+                        <p class="col-span-3 text-gray-500 text-sm text-center">Select service and date first</p>
+                    </div>
+                    <input type="hidden" id="selectedTime" value="">
+                </div>
+
                 <!-- Book Button -->
                 @auth
-                    <button onclick="bookAppointment()" class="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white py-3 rounded-xl hover:from-pink-700 hover:to-rose-700 transition-all font-semibold shadow-lg hover:shadow-xl">
+                    <button onclick="continueBooking()" class="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white py-3 rounded-xl hover:from-pink-700 hover:to-rose-700 transition-all font-semibold shadow-lg hover:shadow-xl">
                         Continue Booking →
                     </button>
                 @else
-                    <a href="{{ route('login') }}" class="block w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white py-3 rounded-xl hover:from-pink-700 hover:to-rose-700 transition-all text-center font-semibold shadow-lg hover:shadow-xl">
+                    <button onclick="loginToBook()" class="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white py-3 rounded-xl hover:from-pink-700 hover:to-rose-700 transition-all font-semibold shadow-lg hover:shadow-xl">
                         Login to Book →
-                    </a>
+                    </button>
                 @endauth
                 
                 <p class="text-center text-gray-500 text-sm mt-4">Book with confidence - Easy cancellation</p>
@@ -464,6 +535,125 @@
     <script>
         let currentDate = new Date();
         let selectedDate = null;
+        let selectedDateStr = null; // YYYY-MM-DD without timezone shift
+        let selectedServiceId = null;
+        let selectedServiceName = null;
+        let selectedServiceType = null;
+        let selectedServiceEnableRemoval = false;
+        let selectedNeedsRemoval = 0;
+        let selectedTime = null;
+
+        // Handle service selection
+        function selectServiceLanding(serviceId, serviceName, duration, serviceType = null, enableRemoval = 0) {
+            // Remove selected class from all cards
+            document.querySelectorAll('.service-card-landing').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // Add selected class to clicked card
+            const selectedCard = document.querySelector(`.service-card-landing[data-service-id="${serviceId}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+            }
+
+            // Store selected service
+            selectedServiceId = serviceId;
+            selectedServiceName = serviceName;
+            selectedServiceType = serviceType;
+            selectedServiceEnableRemoval = enableRemoval === 1 || enableRemoval === '1';
+            selectedNeedsRemoval = 0; // reset to default when changing service
+            
+            // Update display
+            document.getElementById('selectedServiceId').value = serviceId;
+            document.getElementById('selectedServiceName').textContent = serviceName;
+
+            // Show/hide removal option based on service settings
+            const removalContainer = document.getElementById('removalOptionLanding');
+            const nailsOrEyelash = serviceType === 'nails_art' || serviceType === 'eyelash';
+            if (selectedServiceEnableRemoval && nailsOrEyelash) {
+                removalContainer.classList.remove('hidden');
+            } else {
+                removalContainer.classList.add('hidden');
+                selectedNeedsRemoval = 0;
+                const radio = document.querySelector('input[name="needs_removal_landing"][value="0"]');
+                if (radio) radio.checked = true;
+            }
+
+            // Load available times if date is already selected
+            if (selectedDateStr) {
+                loadAvailableTimesLanding();
+            }
+        }
+
+        // Load available time slots
+        async function loadAvailableTimesLanding() {
+            if (!selectedServiceId || !selectedDateStr) {
+                return;
+            }
+
+            const dateStr = selectedDateStr;
+            const timeSlotContainer = document.getElementById('timeSlotContainer');
+            const timeSlotsDiv = document.getElementById('timeSlots');
+            
+            try {
+                const response = await fetch(`/api/bookings/available-times?service_id=${selectedServiceId}&date=${dateStr}&needs_removal=${selectedNeedsRemoval}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.times || data.times.length === 0) {
+                    timeSlotsDiv.innerHTML = '<p class="col-span-3 text-gray-500 text-sm text-center">No available times for this date</p>';
+                    timeSlotContainer.classList.remove('hidden');
+                    return;
+                }
+
+                timeSlotsDiv.innerHTML = data.times.map(slot => `
+                        <button type="button" 
+                            class="time-slot px-3 py-2 rounded-lg border-2 transition text-sm ${slot.available ? 'border-gray-300 bg-white hover:border-pink-600 cursor-pointer' : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'}"
+                            onclick="selectTimeLanding(event, '${slot.time}')"
+                            ${!slot.available ? 'disabled' : ''}>
+                        ${slot.time}
+                    </button>
+                `).join('');
+
+                timeSlotContainer.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading times:', error);
+                timeSlotsDiv.innerHTML = '<p class="col-span-3 text-red-500 text-sm text-center">Error loading available times</p>';
+                timeSlotContainer.classList.remove('hidden');
+            }
+        }
+
+        // Select time slot
+        function selectTimeLanding(event, time) {
+            selectedTime = time;
+            document.getElementById('selectedTime').value = time;
+            
+            // Update UI
+            document.querySelectorAll('.time-slot').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+        }
+
+        // Handle removal option change
+        document.querySelectorAll('input[name="needs_removal_landing"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                selectedNeedsRemoval = radio.value === '1' ? 1 : 0;
+                if (selectedDateStr && selectedServiceId) {
+                    loadAvailableTimesLanding();
+                }
+            });
+        });
 
         function renderCalendar() {
             const year = currentDate.getFullYear();
@@ -510,7 +700,7 @@
                 }
                 
                 // Only allow future dates
-                if (dateObj >= today) {
+                if (dateObj >= today.setHours(0,0,0,0)) {
                     day.onclick = () => selectDate(dateObj);
                 } else {
                     day.style.opacity = '0.5';
@@ -533,9 +723,15 @@
 
         function selectDate(date) {
             selectedDate = date;
+            selectedDateStr = formatDateLocal(date);
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             document.getElementById('selectedDate').textContent = date.toLocaleDateString('en-US', options);
             renderCalendar();
+            
+            // Load available times if service is selected
+            if (selectedServiceId) {
+                loadAvailableTimesLanding();
+            }
         }
 
         function previousMonth() {
@@ -548,14 +744,76 @@
             renderCalendar();
         }
 
-        function bookAppointment() {
-            if (!selectedDate) {
+        // For authenticated users
+        function continueBooking() {
+            if (!selectedServiceId) {
+                alert('Please select a service');
+                return;
+            }
+            if (!selectedDateStr) {
                 alert('Please select a date');
                 return;
             }
-            // Store selected date and redirect to booking page
-            const dateStr = selectedDate.toISOString().split('T')[0];
-            window.location.href = `/booking?date=${dateStr}`;
+            
+            // Build URL with parameters
+            const dateStr = selectedDateStr;
+            let url = `/booking?service_id=${selectedServiceId}&date=${dateStr}&needs_removal=${selectedNeedsRemoval}`;
+            if (selectedTime) {
+                url += `&time=${selectedTime}`;
+            }
+            window.location.href = url;
+        }
+
+        // For guest users - save to session then redirect to login
+        async function loginToBook() {
+            if (!selectedServiceId) {
+                alert('Please select a service');
+                return;
+            }
+            if (!selectedDateStr) {
+                alert('Please select a date');
+                return;
+            }
+            
+            const dateStr = selectedDateStr;
+            
+            // Save booking data to session
+            try {
+                const response = await fetch('/api/save-booking-intent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify({
+                        service_id: selectedServiceId,
+                        date: dateStr,
+                        time: selectedTime,
+                        needs_removal: selectedNeedsRemoval
+                    })
+                });
+
+                if (response.ok) {
+                    // Redirect to login with return URL
+                    window.location.href = '/login?return=booking';
+                } else {
+                    console.error('Failed to save booking intent');
+                    window.location.href = '/login?return=booking';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // Fallback: redirect anyway
+                window.location.href = '/login?return=booking';
+            }
+        }
+
+        // Helper to format date without timezone shifts
+        function formatDateLocal(dateObj) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         }
 
         // Initialize calendar
