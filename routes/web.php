@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\NailArtistDashboardController;
 use App\Http\Controllers\TypeController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ErrorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,15 +28,24 @@ Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('regi
 Route::post('/register', [AuthController::class, 'register'])->middleware('guest');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
-Route::middleware('auth')->group(function () {
+// Error Routes
+Route::get('/unauthorized', [ErrorController::class, 'unauthorized'])->name('unauthorized');
+Route::get('/access-denied', [ErrorController::class, 'unauthorizedAccess'])->name('unauthorized.access');
+
+// Customer-only pages
+Route::middleware('role:customer')->group(function () {
     Route::get('/dashboard', [CustomerDashboardController::class, 'index'])->name('dashboard');
     Route::get('/booking', [CustomerDashboardController::class, 'bookingForm'])->name('booking.form');
     Route::post('/bookings/{id}/cancel', [CustomerDashboardController::class, 'cancelBooking'])->name('customer.cancel-booking');
+});
+
+// Profile edit is available to all authenticated roles
+Route::middleware('auth')->group(function () {
     Route::get('/profile/edit', [UserController::class, 'showEditProfile'])->name('profile.edit');
     Route::put('/profile/update', [UserController::class, 'updateProfileWeb'])->name('profile.update');
 });
 
-Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+Route::middleware('role:admin')->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     Route::resource('/types', TypeController::class, ['as' => 'admin']);
     Route::get('/bookings', [AdminDashboardController::class, 'bookings'])->name('admin.bookings');
@@ -53,7 +63,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/customers', [AdminDashboardController::class, 'customers'])->name('admin.customers');
 });
 
-Route::middleware(['auth', 'nail_artist'])->prefix('nail-artist')->group(function () {
+Route::middleware('role:nail_artist')->prefix('nail-artist')->group(function () {
     Route::get('/dashboard', [NailArtistDashboardController::class, 'index'])->name('nail-artist.dashboard');
     Route::get('/bookings', [NailArtistDashboardController::class, 'bookings'])->name('nail-artist.bookings');
     Route::post('/bookings/{booking}/status', [NailArtistDashboardController::class, 'updateStatus'])->name('nail-artist.update-status');
