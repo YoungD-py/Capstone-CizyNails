@@ -29,7 +29,6 @@ Route::post('/register', [AuthController::class, 'register'])->middleware('guest
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 // Error Routes
-Route::get('/unauthorized', [ErrorController::class, 'unauthorized'])->name('unauthorized');
 Route::get('/access-denied', [ErrorController::class, 'unauthorizedAccess'])->name('unauthorized.access');
 
 // Customer-only pages

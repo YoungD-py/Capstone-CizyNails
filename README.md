@@ -16,13 +16,13 @@ Cizy Nails streamlines service discovery and booking for customers, while provid
 - Midtrans payment integration (Snap)
 - Role-based dashboards: Customer, Admin, Nail Artist
 - Admin service management (enable/disable removal per service)
-- Robust access control with custom unauthorized pages
+- Robust access control with clear redirects
 - Edit Profile for all roles (Full Name, Email, WhatsApp, Password)
 
-### Custom Unauthorized Pages
+### Access Handling
 
-- Not logged in: redirected to "WHAT YOU TRNA DO BRUH?" (unauthorized)
-- Wrong role: redirected to "SORRY THIS IS NOT YOUR ACCESS" (unauthorized-access)
+- Not logged in: redirected to Login
+- Wrong role: redirected to "SORRY THIS IS NOT YOUR ACCESS" (access-denied)
 
 ---
 
@@ -124,13 +124,13 @@ Route protection is enforced by role-based middleware with clear outcomes:
 - Customer pages: require `role:customer`
 - Admin pages: require `role:admin`
 - Nail Artist pages: require `role:nail_artist`
-- Not logged in: redirected to unauthorized page
-- Logged in but wrong role: redirected to unauthorized-access page
+- Not logged in: redirected to login
+- Logged in but wrong role: redirected to access-denied page
 
 Key middleware:
 
 - `app/Http/Middleware/CheckRole.php` — central role check + redirects
-- `app/Http/Middleware/Authenticate.php` — redirects unauthenticated users to unauthorized
+- `app/Http/Middleware/Authenticate.php` — redirects unauthenticated users to login
 
 ---
 
@@ -140,7 +140,7 @@ Key middleware:
 
 - Landing: `/`
 - Auth: `/login`, `/register`, `/logout`
-- Errors: `/unauthorized`, `/access-denied`
+- Errors: `/access-denied`
 - Customer: `/dashboard`, `/booking`
 - Admin: `/admin/*` (dashboard, services, types, bookings, customers, schedules)
 - Nail Artist: `/nail-artist/*` (dashboard, bookings)
@@ -195,7 +195,7 @@ php artisan test
 
 ## Troubleshooting
 
-- Seeing login instead of unauthorized? Ensure `Authenticate` middleware redirects to `unauthorized`.
+- Not redirected to login when unauthenticated? Ensure `Authenticate` middleware points to the login route.
 - Role cannot access a page? Confirm route group uses `role:<role>` and caches are cleared.
 - Availability off by time zone? Use the landing page’s timezone-safe date handling.
 
