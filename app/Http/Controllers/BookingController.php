@@ -300,14 +300,23 @@ class BookingController extends Controller
     {
         // Get user and booking info for debugging
         $user = $request->user();
-        $isOwner = $booking->user_id === $user->id;
-        $isAdmin = $user->role === 'admin';
+        
+        // Explicit casting to ensure proper comparison
+        $bookingUserId = (int) $booking->user_id;
+        $requestUserId = (int) $user->id;
+        $userRole = (string) $user->role;
+        
+        $isOwner = $bookingUserId === $requestUserId;
+        $isAdmin = $userRole === 'admin';
         
         \Log::debug('Booking access attempt', [
             'booking_id' => $booking->id,
-            'booking_user_id' => $booking->user_id,
-            'request_user_id' => $user->id,
-            'user_role' => $user->role,
+            'booking_user_id' => $bookingUserId,
+            'booking_user_id_type' => gettype($booking->user_id),
+            'request_user_id' => $requestUserId,
+            'request_user_id_type' => gettype($user->id),
+            'user_role' => $userRole,
+            'role_type' => gettype($user->role),
             'is_owner' => $isOwner,
             'is_admin' => $isAdmin,
             'allowed' => $isOwner || $isAdmin,
@@ -318,9 +327,11 @@ class BookingController extends Controller
             return response()->json([
                 'message' => 'Unauthorized. You can only view your own bookings.',
                 'booking_id' => $booking->id,
-                'your_user_id' => $user->id,
-                'booking_user_id' => $booking->user_id,
-                'your_role' => $user->role,
+                'your_user_id' => $requestUserId,
+                'booking_user_id' => $bookingUserId,
+                'your_role' => $userRole,
+                'is_owner' => $isOwner,
+                'is_admin' => $isAdmin,
             ], 403);
         }
 
