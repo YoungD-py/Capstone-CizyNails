@@ -92,18 +92,12 @@ class AuthController extends Controller
         Auth::login($user);
         
         // Check if there's a booking intent from the landing page
-        $hasBookingIntent = $request->session()->has('booking_intent');
-        $bookingIntent = $hasBookingIntent ? $request->session()->get('booking_intent') : null;
-        
-        // Regenerate session to prevent fixation and ensure CSRF/session stability
-        $request->session()->regenerate();
-        
-        // If there was a booking intent, redirect to booking page
-        if ($hasBookingIntent && $bookingIntent) {
+        if ($request->session()->has('booking_intent')) {
+            $intent = $request->session()->get('booking_intent');
             $request->session()->forget('booking_intent');
             return redirect()->route('booking.form')->with([
                 'success' => 'Login successful!',
-                'booking_intent' => $bookingIntent
+                'booking_intent' => $intent
             ]);
         }
         

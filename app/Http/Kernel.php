@@ -70,5 +70,6 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'nail_artist' => \App\Http\Middleware\NailArtistMiddleware::class,
         'role' => \App\Http\Middleware\CheckRole::class,
+        'api.session.auth' => \App\Http\Middleware\ApiSessionAuth::class,
     ];
 }

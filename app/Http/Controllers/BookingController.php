@@ -298,8 +298,15 @@ class BookingController extends Controller
 
     public function show(Booking $booking, Request $request)
     {
+        // Check authorization
         if ($booking->user_id !== $request->user()->id && $request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized. You can only view your own bookings.',
+                'booking_id' => $booking->id,
+                'user_id' => $request->user()->id,
+                'booking_user_id' => $booking->user_id,
+                'user_role' => $request->user()->role
+            ], 403);
         }
 
         return response()->json([

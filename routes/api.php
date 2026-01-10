@@ -51,9 +51,18 @@ Route::post('/midtrans/webhook', function (Request $request) {
     }
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['api.session.auth', 'auth'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    
+    // Debug endpoint - remove after testing
+    Route::get('/debug/auth', function (Request $request) {
+        return response()->json([
+            'authenticated' => $request->user() !== null,
+            'user' => $request->user(),
+            'session_id' => session()->getId(),
+        ]);
+    });
     
     // User profile routes
     Route::get('/profile', [UserController::class, 'profile']);

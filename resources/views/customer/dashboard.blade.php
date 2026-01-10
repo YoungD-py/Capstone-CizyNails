@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>My Dashboard - Cizy Nails</title>
     <link rel="icon" type="image/jpeg" href="{{ asset('img/cizyLogo.jpeg') }}">
     <script src="{{ asset('js/toast.js') }}"></script>
@@ -228,7 +229,33 @@
             } else {
                 console.log('Toast notification system loaded successfully');
             }
+            
+            // Debug: Check authentication status
+            checkAuthStatus();
         });
+
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/debug/auth', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                console.log('🔐 AUTH DEBUG:', data);
+                
+                if (!data.authenticated) {
+                    console.warn('⚠️ User not authenticated on API!');
+                }
+            } catch (error) {
+                console.error('❌ Debug request failed:', error);
+            }
+        }
 
         function openBookingDetail(bookingId) {
             fetch(`/api/bookings/${bookingId}`, {
@@ -236,13 +263,19 @@
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
                 },
                 credentials: 'include'
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 const booking = data.booking;
-                const paymentStatusBadge = booking.payment_status === 'paid' 
+                const paymentStatusBadge = booking.payment_status === 'paid'
                     ? '<span style="display: inline-block; padding: 4px 12px; background-color: #DBEAFE; color: #1E40AF; border-radius: 9999px; font-size: 0.875rem; font-weight: 600;">Paid</span>'
                     : '<span style="display: inline-block; padding: 4px 12px; background-color: #FEF3C7; color: #92400E; border-radius: 9999px; font-size: 0.875rem; font-weight: 600;">Unpaid</span>';
                 
@@ -352,8 +385,8 @@
                 document.getElementById('bookingDetailModal').classList.remove('hidden');
             })
             .catch(error => {
-                showToast('Error loading booking details', 'error');
-                console.error(error);
+                console.error('Full error:', error);
+                showToast('Error loading booking details: ' + error.message, 'error');
             });
         }
 
