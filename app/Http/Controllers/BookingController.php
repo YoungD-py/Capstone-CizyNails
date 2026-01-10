@@ -298,14 +298,29 @@ class BookingController extends Controller
 
     public function show(Booking $booking, Request $request)
     {
+        // Get user and booking info for debugging
+        $user = $request->user();
+        $isOwner = $booking->user_id === $user->id;
+        $isAdmin = $user->role === 'admin';
+        
+        \Log::debug('Booking access attempt', [
+            'booking_id' => $booking->id,
+            'booking_user_id' => $booking->user_id,
+            'request_user_id' => $user->id,
+            'user_role' => $user->role,
+            'is_owner' => $isOwner,
+            'is_admin' => $isAdmin,
+            'allowed' => $isOwner || $isAdmin,
+        ]);
+        
         // Check authorization
-        if ($booking->user_id !== $request->user()->id && $request->user()->role !== 'admin') {
+        if (!$isOwner && !$isAdmin) {
             return response()->json([
                 'message' => 'Unauthorized. You can only view your own bookings.',
                 'booking_id' => $booking->id,
-                'user_id' => $request->user()->id,
+                'your_user_id' => $user->id,
                 'booking_user_id' => $booking->user_id,
-                'user_role' => $request->user()->role
+                'your_role' => $user->role,
             ], 403);
         }
 

@@ -269,7 +269,10 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json().then(data => {
+                        console.error('❌ API Error Response:', data);
+                        throw new Error(`HTTP error! status: ${response.status}\n${JSON.stringify(data)}`);
+                    });
                 }
                 return response.json();
             })
