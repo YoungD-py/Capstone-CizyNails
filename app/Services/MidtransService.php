@@ -99,22 +99,39 @@ class MidtransService
             $paymentType = $notification['payment_type'];
             $fraudStatus = $notification['fraud_status'] ?? null;
 
-            \Log::info('Midtrans webhook received', [
+            \Log::info('=== MIDTRANS WEBHOOK RECEIVED START ===');
+            \Log::info('Full webhook data:', [
                 'order_id' => $orderId,
                 'transaction_status' => $transactionStatus,
+                'payment_type' => $paymentType,
                 'fraud_status' => $fraudStatus,
+                'all_keys' => array_keys($notification),
             ]);
 
             // Extract booking ID from order_id (format: BOOKING-{id}-{timestamp})
             $bookingId = explode('-', $orderId)[1];
-
+            
+            \Log::info('Extracted booking ID:', ['booking_id' => $bookingId]);
+            
             $booking = \App\Models\Booking::find($bookingId);
             if (!$booking) {
-                \Log::warning('Booking not found for order_id: ' . $orderId);
+                \Log::error('Booking not found', ['booking_id' => $bookingId, 'order_id' => $orderId]);
                 return false;
             }
+            
+            \Log::info('Booking found:', [
+                'booking_id' => $booking->id,
+                'current_status' => $booking->status,
+                'current_payment_status' => $booking->payment_status,
+            ]);
 
             // Handle transaction status
+            \Log::info('Processing transaction status:', [
+                'transaction_status' => $transactionStatus,
+                'fraud_status' => $fraudStatus,
+                'will_process_email' => ($transactionStatus == 'capture' || $transactionStatus == 'settlement') && ($fraudStatus == 'accept' || $fraudStatus == null),
+            ]);
+            
             if ($transactionStatus == 'capture' || $transactionStatus == 'settlement') {
                 if ($fraudStatus == 'challenge') {
                     // Challenge status - wait for manual verification
@@ -125,6 +142,11 @@ class MidtransService
                     \Log::info('Booking payment challenged', ['booking_id' => $bookingId]);
                 } else if ($fraudStatus == 'accept' || $fraudStatus == null) {
                     // Payment successful
+                    \Log::info('PAYMENT SUCCESSFUL - Starting email send process', [
+                        'booking_id' => $bookingId,
+                        'fraud_status' => $fraudStatus,
+                    ]);
+                    
                     $booking->update([
                         'payment_status' => 'paid',
                         'status' => 'confirmed',
@@ -133,10 +155,50 @@ class MidtransService
                     
                     \Log::info('Booking payment successful', ['booking_id' => $bookingId]);
                     
+                    // Create notification
+                    try {
+                        \App\Models\Notification::create([
+                            'booking_id' => $bookingId,
+                            'type' => 'payment_confirmed',
+                            'title' => 'Order Masuk - ' . $booking->user->name,
+                            'message' => 'Booking dari ' . $booking->user->name . ' untuk ' . $booking->service->name . ' telah dikonfirmasi. Tanggal: ' . $booking->booking_date->format('d M Y') . ', Jam: ' . $booking->booking_time,
+                            'is_read' => false,
+                        ]);
+                        \Log::info('Notification created successfully', ['booking_id' => $bookingId]);
+                    } catch (\Exception $e) {
+                        \Log::error('Error creating notification', [
+                            'booking_id' => $bookingId,
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString(),
+                        ]);
+                    }
+                    
                     // Send email to admin
-                    \Mail::to(config('services.admin_email'))->send(
-                        new \App\Mail\BookingPaymentNotification($booking)
-                    );
+                    try {
+                        $adminEmail = config('services.admin_email');
+                        \Log::info('Sending booking notification email', [
+                            'booking_id' => $bookingId,
+                            'admin_email' => $adminEmail,
+                            'mail_mailer' => config('mail.mailer'),
+                            'mail_host' => config('mail.host'),
+                            'mail_from' => config('mail.from.address'),
+                        ]);
+                        
+                        \Mail::to($adminEmail)->send(
+                            new \App\Mail\BookingPaymentNotification($booking)
+                        );
+                        
+                        \Log::info('Booking notification email sent successfully', [
+                            'booking_id' => $bookingId,
+                            'to_email' => $adminEmail,
+                        ]);
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to send booking notification email', [
+                            'booking_id' => $bookingId,
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString(),
+                        ]);
+                    }
                 }
             } else if ($transactionStatus == 'pending') {
                 $booking->update([
@@ -164,9 +226,14 @@ class MidtransService
                 \Log::info('Booking payment failed/expired', ['booking_id' => $bookingId, 'reason' => $transactionStatus]);
             }
 
+            \Log::info('=== MIDTRANS WEBHOOK RECEIVED END (Success) ===');
             return true;
         } catch (Exception $e) {
-            \Log::error('Midtrans webhook handling error: ' . $e->getMessage());
+            \Log::error('=== MIDTRANS WEBHOOK HANDLING ERROR ===', [
+                'error_message' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return false;
         }
     }

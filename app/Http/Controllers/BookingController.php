@@ -9,6 +9,7 @@ use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth;
 
 class BookingController extends Controller
 {
@@ -229,39 +230,91 @@ class BookingController extends Controller
 
     public function cancel(Booking $booking, Request $request)
     {
-        if ($booking->user_id !== $request->user()->id && $request->user()->role !== 'admin') {
+        $user = $request->user();
+        
+        \Log::info('=== CANCEL BOOKING ATTEMPT ===', [
+            'booking_id' => $booking->id,
+            'booking_user_id' => $booking->user_id,
+            'request_user' => $user,
+            'request_user_id' => $user?->id,
+            'current_status' => $booking->status,
+        ]);
+
+        // AUTH CHECK - sama seperti reschedule
+        if (!$user) {
+            \Log::error('Cancel: User not authenticated');
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        // AUTHORIZATION CHECK - cast to int untuk compare
+        $bookingUserId = (int)$booking->user_id;
+        $requestUserId = (int)$user->id;
+        $userRole = $user->role ?? 'customer';
+
+        if ($bookingUserId !== $requestUserId && $userRole !== 'admin') {
+            \Log::warning('Cancel unauthorized - user mismatch', [
+                'booking_id' => $booking->id,
+                'booking_user_id' => $bookingUserId,
+                'request_user_id' => $requestUserId,
+                'user_role' => $userRole,
+            ]);
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         if ($booking->status === 'cancelled') {
+            \Log::info('Booking already cancelled', ['booking_id' => $booking->id]);
             return response()->json(['message' => 'Booking is already cancelled'], 400);
         }
 
         // Check if booking is in the past
         if ($booking->booking_date < now()->toDateString()) {
+            \Log::info('Cannot cancel past booking', ['booking_id' => $booking->id, 'booking_date' => $booking->booking_date]);
             return response()->json(['message' => 'Cannot cancel past bookings'], 400);
         }
 
-        $schedule = \App\Models\Schedule::where('date', $booking->booking_date)
-            ->where('time_slot', $booking->booking_time)
-            ->first();
+        try {
+            $schedule = \App\Models\Schedule::where('date', $booking->booking_date)
+                ->where('time_slot', $booking->booking_time)
+                ->first();
 
-        if ($schedule) {
-            $this->decrementScheduleBooking($schedule, $booking->service);
+            if ($schedule) {
+                $this->decrementScheduleBooking($schedule, $booking->service);
+            }
+
+            $booking->update(['status' => 'cancelled']);
+            $booking->refresh();
+
+            \Log::info('Booking cancelled successfully', [
+                'booking_id' => $booking->id,
+                'new_status' => $booking->status,
+            ]);
+
+            return response()->json([
+                'message' => 'Appointment cancelled successfully',
+                'booking' => $booking,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Cancel booking error: ' . $e->getMessage(), [
+                'booking_id' => $booking->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'message' => 'Error cancelling booking',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $booking->update(['status' => 'cancelled']);
-
-        return response()->json([
-            'message' => 'Booking cancelled successfully',
-            'booking' => $booking,
-        ]);
     }
 
     public function retryPayment(Booking $booking, Request $request)
     {
-        if ($booking->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $user = $request->user();
+        
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized - Not authenticated'], 403);
+        }
+
+        if ((int)$booking->user_id !== (int)$user->id) {
+            return response()->json(['message' => 'Unauthorized - Not your booking'], 403);
         }
 
         if ($booking->payment_status === 'paid') {
@@ -518,10 +571,84 @@ class BookingController extends Controller
     public function reschedule(Booking $booking, Request $request)
     {
         try {
-            // Check authorization
-            if ($booking->user_id !== $request->user()->id) {
+            // ===== COMPREHENSIVE AUTH DEBUGGING =====
+            \Log::info('');
+            \Log::info('=============== RESCHEDULE ATTEMPT ===============');
+            
+            // 1. Request and Session info
+            \Log::info('1. Request & Session Details:', [
+                'request_path' => $request->path(),
+                'request_method' => $request->method(),
+                'session_id' => session()->getId(),
+                'session_driver' => config('session.driver'),
+                'session_lifetime' => config('session.lifetime'),
+                'session_cookie_name' => config('session.cookie'),
+            ]);
+
+            // 2. Booking info
+            \Log::info('2. Booking Details:', [
+                'booking_id' => $booking->id,
+                'booking_user_id' => $booking->user_id,
+                'booking_user_id_type' => gettype($booking->user_id),
+                'booking_status' => $booking->status,
+            ]);
+
+            // 3. Auth guard and user
+            $user = $request->user();
+            \Log::info('3. Authentication State:', [
+                'request_user_is_null' => $user === null,
+                'request_user_id' => $user?->id,
+                'request_user_id_type' => $user ? gettype($user->id) : 'null',
+                'request_user_name' => $user?->name,
+                'current_auth_guard' => \Illuminate\Support\Facades\Auth::getDefaultDriver(),
+                'auth_check' => \Illuminate\Support\Facades\Auth::check(),
+            ]);
+
+            // 4. Cookie info
+            $sessionCookie = config('session.cookie');
+            \Log::info('4. Cookie & Session Details:', [
+                'session_cookie_name' => $sessionCookie,
+                'has_session_cookie' => $request->hasCookie($sessionCookie),
+                'session_cookie_value' => $request->cookie($sessionCookie) ? 'EXISTS' : 'MISSING',
+                'all_cookies_keys' => array_keys($request->cookies->all()),
+                'request_all_session_data' => session()->all(),
+            ]);
+
+            // 5. Guard attempts
+            $webGuardUser = \Illuminate\Support\Facades\Auth::guard('web')->user();
+            \Log::info('5. Direct Guard Check:', [
+                'web_guard_user_exists' => $webGuardUser !== null,
+                'web_guard_user_id' => $webGuardUser?->id,
+                'web_guard_user_name' => $webGuardUser?->name,
+            ]);
+
+            // ===== AUTH CHECK =====
+            if (!$user) {
+                \Log::error('RESCHEDULE FAILED: request->user() is null (Unauthenticated)');
+                return response()->json(['message' => 'Unauthenticated'], 401);
+            }
+
+            // ===== AUTHORIZATION CHECK =====
+            $bookingUserId = (int)$booking->user_id;
+            $requestUserId = (int)$user->id;
+            
+            \Log::info('6. User ID Comparison:', [
+                'booking_user_id_int' => $bookingUserId,
+                'request_user_id_int' => $requestUserId,
+                'ids_match' => $bookingUserId === $requestUserId,
+            ]);
+
+            if ($bookingUserId !== $requestUserId) {
+                \Log::error('RESCHEDULE FAILED: User ID mismatch (Unauthorized)', [
+                    'booking_user_id' => $bookingUserId,
+                    'request_user_id' => $requestUserId,
+                    'booking_owner_id' => $booking->user?->id,
+                    'request_user_name' => $user->name,
+                ]);
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
+
+            \Log::info('✓ AUTH PASSED - User is authenticated and authorized');
 
             // Check if booking can be rescheduled
             if ($booking->status === 'cancelled') {

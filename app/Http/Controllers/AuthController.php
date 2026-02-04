@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -18,6 +20,94 @@ class AuthController extends Controller
     public function showRegisterForm()
     {
         return view('auth.register');
+    }
+
+    public function showForgotForm()
+    {
+        return view('auth.forgot-password');
+    }
+
+    public function sendResetOtp(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ], [
+            'email.exists' => 'Email tidak terdaftar.',
+        ]);
+
+        $email = $validated['email'];
+        $code = random_int(100000, 999999);
+
+        // Simpan hashed code ke password_reset_tokens
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $email],
+            [
+                'token' => Hash::make($code),
+                'created_at' => now(),
+            ]
+        );
+
+        // Kirim email OTP sederhana
+        try {
+            Mail::raw("Kode reset password Anda: {$code}\nBerlaku 10 menit. Jangan bagikan ke siapapun.", function ($message) use ($email) {
+                $message->to($email)->subject('Kode Reset Password - Cizy Nails');
+            });
+        } catch (\Exception $e) {
+            return back()->withErrors(['email' => 'Gagal mengirim email. Coba lagi.']);
+        }
+
+        return redirect()->route('password.reset', ['email' => $email])
+            ->with('success', 'Kode OTP telah dikirim ke email Anda.');
+    }
+
+    public function showResetForm(Request $request)
+    {
+        return view('auth.reset-password', [
+            'email' => $request->get('email')
+        ]);
+    }
+
+    public function resetWithOtp(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'otp' => 'required|digits:6',
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'email.exists' => 'Email tidak terdaftar.',
+            'otp.digits' => 'OTP harus 6 digit.',
+        ]);
+
+        $record = DB::table('password_reset_tokens')->where('email', $validated['email'])->first();
+        if (!$record) {
+            return back()->withErrors(['otp' => 'Kode OTP tidak ditemukan.'])->withInput();
+        }
+
+        // Expiry 10 minutes
+        if (now()->diffInMinutes($record->created_at) > 10) {
+            return back()->withErrors(['otp' => 'Kode OTP kadaluarsa, silakan minta lagi.'])->withInput();
+        }
+
+        if (!Hash::check($validated['otp'], $record->token)) {
+            return back()->withErrors(['otp' => 'Kode OTP salah.'])->withInput();
+        }
+
+        $user = User::where('email', $validated['email'])->first();
+        if (!$user) {
+            return back()->withErrors(['email' => 'Email tidak ditemukan.']);
+        }
+
+        $user->update([
+            'password' => Hash::make($validated['password'])
+        ]);
+
+        // Hapus token setelah sukses
+        DB::table('password_reset_tokens')->where('email', $validated['email'])->delete();
+
+        // Auto login user
+        Auth::login($user);
+
+        return redirect()->route('dashboard')->with('success', 'Password berhasil direset. Anda sudah login.');
     }
 
     public function register(Request $request)
@@ -68,16 +158,34 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $validated = $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
+        // Izinkan login pakai email ATAU nomor HP
+        $request->merge([
+            'login' => $request->input('login') ?? $request->input('email'), // fallback agar API lama tetap jalan
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        $validated = $request->validate([
+            'login' => 'required|string',
+            'password' => 'required|string',
+        ], [
+            'login.required' => 'Email atau nomor HP harus diisi.',
+        ]);
+
+        $loginInput = $validated['login'];
+        $phoneDigits = preg_replace('/\D+/', '', $loginInput);
+
+        $user = User::where(function ($q) use ($loginInput, $phoneDigits) {
+                $q->where('email', $loginInput)
+                  ->orWhere('phone', $loginInput);
+                // Cocokkan nomor HP tanpa karakter non-digit (spasi, +, -)
+                if ($phoneDigits) {
+                    $q->orWhereRaw("REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(phone, '[^0-9]', ''), ' +', ''), ' +', '') = ?", [$phoneDigits]);
+                }
+            })
+            ->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'login' => ['Email/HP atau password salah.'],
             ]);
         }
 

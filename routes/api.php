@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\AdminDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,31 +39,54 @@ Route::post('/save-booking-intent', function (Request $request) {
 
 Route::get('/bookings/available-times', [BookingController::class, 'getAvailableTimes']);
 
-Route::post('/midtrans/webhook', function (Request $request) {
-    $midtransService = new \App\Services\MidtransService();
+Route::match(['get', 'post'], '/midtrans/webhook', function (Request $request) {
+    if ($request->isMethod('get')) {
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Midtrans webhook endpoint is ready.',
+        ], 200);
+    }
+
     $notification = $request->all();
-    
+    $orderId = $notification['order_id'] ?? null;
+
+    if (!$orderId || !is_string($orderId)) {
+        \Log::warning('Midtrans webhook received without order_id', [
+            'payload' => $notification,
+        ]);
+        return response()->json([
+            'status' => 'ignored',
+            'message' => 'Missing order_id in notification.',
+        ], 200);
+    }
+
+    if (strpos($orderId, 'BOOKING-') !== 0) {
+        \Log::warning('Midtrans webhook order_id not recognized', [
+            'order_id' => $orderId,
+            'payload' => $notification,
+        ]);
+        return response()->json([
+            'status' => 'ignored',
+            'message' => 'Unrecognized order_id format.',
+        ], 200);
+    }
+
+    $midtransService = new \App\Services\MidtransService();
     $result = $midtransService->handleNotification($notification);
-    
+
     if ($result) {
         return response()->json(['status' => 'success'], 200);
-    } else {
-        return response()->json(['status' => 'error'], 400);
     }
+
+    return response()->json([
+        'status' => 'error',
+        'message' => 'Notification processing failed.',
+    ], 500);
 });
 
 Route::middleware(['api.session.auth', 'auth'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
-    
-    // Debug endpoint - remove after testing
-    Route::get('/debug/auth', function (Request $request) {
-        return response()->json([
-            'authenticated' => $request->user() !== null,
-            'user' => $request->user(),
-            'session_id' => session()->getId(),
-        ]);
-    });
     
     // User profile routes
     Route::get('/profile', [UserController::class, 'profile']);
@@ -83,5 +107,11 @@ Route::middleware(['api.session.auth', 'auth'])->group(function () {
         Route::post('/schedules', [ScheduleController::class, 'store']);
         Route::put('/schedules/{schedule}', [ScheduleController::class, 'update']);
         Route::delete('/schedules/{schedule}', [ScheduleController::class, 'destroy']);
+        
+        // Notification routes
+        Route::get('/admin/notifications', [AdminDashboardController::class, 'getNotifications']);
+        Route::post('/admin/notifications/{id}/read', [AdminDashboardController::class, 'markNotificationAsRead']);
+        Route::post('/admin/notifications/read-all', [AdminDashboardController::class, 'markAllNotificationsAsRead']);
+        Route::post('/admin/notifications/test', [AdminDashboardController::class, 'createTestNotification']); // For testing
     });
 });

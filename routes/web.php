@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\CustomerDashboardController;
 use App\Http\Controllers\AdminDashboardController;
@@ -19,6 +21,14 @@ use App\Http\Controllers\ErrorController;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+// Forgot password (OTP) ditempatkan paling atas agar pasti terdaftar
+Route::get('/forgot-password', function () {
+    return view('auth.forgot-password');
+})->name('password.request');
+Route::post('/forgot-password', [AuthController::class, 'sendResetOtp'])->name('password.email');
+Route::get('/reset-password', [AuthController::class, 'showResetForm'])->name('password.reset');
+Route::post('/reset-password', [AuthController::class, 'resetWithOtp'])->name('password.update');
 
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 
@@ -66,4 +76,12 @@ Route::middleware('role:nail_artist')->prefix('nail-artist')->group(function () 
     Route::get('/dashboard', [NailArtistDashboardController::class, 'index'])->name('nail-artist.dashboard');
     Route::get('/bookings', [NailArtistDashboardController::class, 'bookings'])->name('nail-artist.bookings');
     Route::post('/bookings/{booking}/status', [NailArtistDashboardController::class, 'updateStatus'])->name('nail-artist.update-status');
+});
+
+// Guest auth (login/register/forgot)
+Route::middleware('guest')->group(function () {
+    Route::get('/forgot-password', [AuthController::class, 'showForgotForm'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetOtp'])->name('password.email');
+    Route::get('/reset-password', [AuthController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetWithOtp'])->name('password.update');
 });

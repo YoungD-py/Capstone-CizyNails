@@ -170,8 +170,8 @@
         .qr-content {
             background: white;
             border-radius: 20px;
-            padding: 30px;
-            max-width: 400px;
+            padding: 20px;
+            max-width: 320px;
             width: 90%;
             position: relative;
             animation: slideUp 0.3s ease;
@@ -272,7 +272,7 @@
             <div class="lg:col-span-2" id="services">
                 <div class="mb-6 md:mb-8">
                     <h3 class="text-2xl md:text-3xl font-bold mb-3 text-gray-800">Our Services</h3>
-                    <p class="text-gray-600">Choose from our wide range of premium nail care services</p>
+                    <p class="text-base md:text-lg font-semibold text-pink-600 bg-pink-50 p-4 rounded-lg border-2 border-pink-200">💰 50K down payment (Deposit Awal) - remaining balance paid after treatment (Sisa pembayaran setelah treatment)</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     @forelse($services as $service)
@@ -442,31 +442,43 @@
             <button onclick="toggleQRModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
             
             <div class="text-center">
-                <h3 class="text-2xl font-bold text-gray-800 mb-2">Review Us!</h3>
-                <p class="text-gray-600 mb-6">Scan the QR code below to leave your review</p>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Review Us!</h3>
+                <p class="text-sm text-gray-600 mb-4">Scan the QR code below to leave your review</p>
                 
                 <!-- QR Code Image -->
-                <div class="bg-gradient-to-br from-pink-50 to-rose-50 p-6 rounded-xl mb-6">
-                    <img src="{{ asset('img/ReviewCizy.png') }}" alt="Review QR Code" class="w-64 h-64 mx-auto rounded-lg shadow-md">
+                <div class="bg-gradient-to-br from-pink-50 to-rose-50 p-3 rounded-xl mb-4">
+                    <img src="{{ asset('img/ReviewCizy.png') }}" alt="Review QR Code" class="w-48 h-48 mx-auto rounded-lg shadow-md">
                 </div>
                 
-                <p class="text-sm text-gray-500 mb-4">Or scan to share your experience with us</p>
+                <p class="text-xs text-gray-500 mb-3">Or scan to share your experience with us</p>
                 
                 <!-- Google Maps Location -->
-                <div class="border-t border-gray-200 pt-6 mt-6">
-                    <h4 class="font-bold text-lg text-gray-800 mb-3 flex items-center justify-center gap-2">
-                        <svg class="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="border-t border-gray-200 pt-3 mt-3">
+                    <h4 class="font-bold text-base text-gray-800 mb-2 flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
                         Visit Our Location
                     </h4>
-                    <p class="text-gray-600 text-sm mb-4">Jl. Sunter Kemayoran No.7, RT.3/RW.5<br>Jakarta Utara</p>
-                    <a href="https://maps.app.goo.gl/99iXZgfzPatCfdMu8" target="_blank" class="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-rose-600 text-white px-6 py-3 rounded-full hover:from-pink-700 hover:to-rose-700 transition-all shadow-lg hover:shadow-xl">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <p class="text-gray-600 text-xs mb-2">Jl. Sunter Kemayoran No.7, RT.3/RW.5<br>Jakarta Utara</p>
+                    <a href="https://maps.app.goo.gl/99iXZgfzPatCfdMu8" target="_blank" class="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-rose-600 text-white px-4 py-2 rounded-full hover:from-pink-700 hover:to-rose-700 transition-all shadow-lg hover:shadow-xl text-xs">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
                         </svg>
-                        Open in Google Maps
+                        Maps
+                    </a>
+                </div>
+
+                <!-- WhatsApp Contact -->
+                <div class="border-t border-gray-200 pt-3 mt-3">
+                    <h4 class="font-bold text-base text-gray-800 mb-2 flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12.004 2.003c-5.514 0-9.98 4.466-9.98 9.98 0 1.76.461 3.478 1.34 4.99L2 22l5.16-1.342a9.94 9.94 0 004.844 1.285h.002c5.514 0 9.98-4.466 9.98-9.98 0-2.666-1.04-5.172-2.928-7.06a9.93 9.93 0 00-7.054-2.9zm5.863 14.436c-.25.7-1.23 1.283-2.02 1.454-.54.116-1.24.208-3.61-.774-3.03-1.258-4.974-4.35-5.127-4.552-.15-.2-1.22-1.624-1.22-3.095 0-1.47.77-2.192 1.04-2.49.27-.3.59-.375.79-.375.2 0 .4 0 .57.01.18.01.42-.07.66.5.25.6.84 2.07.91 2.22.07.15.12.32.02.52-.1.2-.15.32-.3.49-.15.17-.32.38-.46.51-.15.13-.3.28-.13.55.17.27.76 1.24 1.63 2.01 1.12.99 2.07 1.3 2.37 1.45.3.15.47.13.64-.08.17-.21.74-.86.94-1.15.2-.29.4-.24.67-.14.27.1 1.74.82 2.04.97.3.15.5.22.57.34.07.12.07.72-.18 1.42z"/></svg>
+                        Chat With Cizy
+                    </h4>
+                    <a href="https://api.whatsapp.com/send?phone=6281210005103" target="_blank" class="inline-flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600 transition-all shadow-lg hover:shadow-xl text-xs">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.004 2.003c-5.514 0-9.98 4.466-9.98 9.98 0 1.76.461 3.478 1.34 4.99L2 22l5.16-1.342a9.94 9.94 0 004.844 1.285h.002c5.514 0 9.98-4.466 9.98-9.98 0-2.666-1.04-5.172-2.928-7.06a9.93 9.93 0 00-7.054-2.9zm5.863 14.436c-.25.7-1.23 1.283-2.02 1.454-.54.116-1.24.208-3.61-.774-3.03-1.258-4.974-4.35-5.127-4.552-.15-.2-1.22-1.624-1.22-3.095 0-1.47.77-2.192 1.04-2.49.27-.3.59-.375.79-.375.2 0 .4 0 .57.01.18.01.42-.07.66.5.25.6.84 2.07.91 2.22.07.15.12.32.02.52-.1.2-.15.32-.3.49-.15.17-.32.38-.46.51-.15.13-.3.28-.13.55.17.27.76 1.24 1.63 2.01 1.12.99 2.07 1.3 2.37 1.45.3.15.47.13.64-.08.17-.21.74-.86.94-1.15.2-.29.4-.24.67-.14.27.1 1.74.82 2.04.97.3.15.5.22.57.34.07.12.07.72-.18 1.42z"/></svg>
+                        Message
                     </a>
                 </div>
             </div>

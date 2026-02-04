@@ -37,6 +37,6 @@ return [
         'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
     ],
 
-    'admin_email' => env('ADMIN_EMAIL', 'deruanggoro009@gmail.com'),
+    'admin_email' => env('ADMIN_EMAIL', 'cizynails@gmail.com'),
 
 ];

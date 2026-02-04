@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Service;
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -24,11 +25,26 @@ class AdminDashboardController extends Controller
         $todayBookings = Booking::where('booking_date', now()->toDateString())->count();
         $totalRevenue = Booking::where('payment_status', 'paid')->sum('price');
         
+        // Handle notifications gracefully if table doesn't exist yet
+        $unreadNotifications = 0;
+        $recentNotifications = collect();
+        
+        try {
+            $unreadNotifications = Notification::unread()->count();
+            $recentNotifications = Notification::with('booking.user')
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get();
+        } catch (\Exception $e) {
+            // Table doesn't exist yet - log it but don't crash
+            \Log::warning('Notifications table not found. Run /public/migrate.php');
+        }
+        
         $recentBookings = Booking::with(['user', 'service'])
             ->orderBy('created_at', 'desc')
             ->paginate(5);
 
-        return view('admin.dashboard', compact('totalBookings', 'totalCustomers', 'totalServices', 'todayBookings', 'totalRevenue', 'recentBookings'));
+        return view('admin.dashboard', compact('totalBookings', 'totalCustomers', 'totalServices', 'todayBookings', 'totalRevenue', 'unreadNotifications', 'recentNotifications', 'recentBookings'));
     }
 
     public function bookings(Request $request)
@@ -108,7 +124,7 @@ class AdminDashboardController extends Controller
                 ->where('time_slot', $booking->booking_time)
                 ->first();
 
-            if ($schedule) {
+            if ($schedule && $booking->service) {
                 $this->decrementScheduleBooking($schedule, $booking->service);
             }
         }
@@ -133,7 +149,7 @@ class AdminDashboardController extends Controller
                     ->where('time_slot', $booking->booking_time)
                     ->first();
 
-                if ($schedule) {
+                if ($schedule && $booking->service) {
                     $this->decrementScheduleBooking($schedule, $booking->service);
                 }
             }
@@ -504,7 +520,7 @@ class AdminDashboardController extends Controller
      */
     private function decrementScheduleBooking($schedule, $service)
     {
-        if (!$schedule) return;
+        if (!$schedule || !$service) return;
         
         // Update new type-based system
         if ($service->type_id) {
@@ -520,4 +536,109 @@ class AdminDashboardController extends Controller
             }
         }
     }
+
+    // Notification methods
+    public function getNotifications()
+    {
+        try {
+            $unread = Notification::unread()->count();
+            $notifications = Notification::with('booking.user')
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get();
+            
+            $formattedNotifications = $notifications->map(function($n) {
+                try {
+                    return [
+                        'id' => $n->id,
+                        'type' => $n->type,
+                        'title' => $n->title,
+                        'message' => $n->message,
+                        'is_read' => (bool)$n->is_read,
+                        'booking_id' => $n->booking_id,
+                        'customer' => ($n->booking && $n->booking->user) ? $n->booking->user->name : 'Unknown',
+                        'created_at' => $n->created_at ? $n->created_at->diffForHumans() : 'Unknown',
+                    ];
+                } catch (\Exception $e) {
+                    \Log::error('Error formatting notification', ['notification_id' => $n->id, 'error' => $e->getMessage()]);
+                    return [
+                        'id' => $n->id,
+                        'title' => $n->title,
+                        'customer' => 'Unknown',
+                        'error' => true,
+                    ];
+                }
+            });
+            
+            return response()->json([
+                'unread_count' => $unread,
+                'notifications' => $formattedNotifications,
+                'success' => true,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in getNotifications', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'unread_count' => 0,
+                'notifications' => [],
+                'error' => $e->getMessage(),
+                'success' => false,
+            ], 500);
+        }
+    }
+
+    public function markNotificationAsRead($id)
+    {
+        try {
+            $notification = Notification::find($id);
+            if ($notification) {
+                $notification->markAsRead();
+                return response()->json(['success' => true]);
+            }
+            return response()->json(['success' => false], 404);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 503);
+        }
+    }
+
+    public function markAllNotificationsAsRead()
+    {
+        try {
+            Notification::unread()->update(['is_read' => true]);
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 503);
+        }
+    }
+
+    // Test endpoint to create dummy notification (for debugging)
+    public function createTestNotification()
+    {
+        try {
+            $booking = Booking::first();
+            if (!$booking) {
+                return response()->json(['error' => 'No bookings found'], 404);
+            }
+
+            $notification = Notification::create([
+                'booking_id' => $booking->id,
+                'type' => 'payment_confirmed',
+                'title' => 'Test Order - ' . $booking->user->name,
+                'message' => 'Ini adalah notifikasi test untuk debugging',
+                'is_read' => false,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Test notification created',
+                'notification' => $notification
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], 500);
+        }
+    }
 }
+

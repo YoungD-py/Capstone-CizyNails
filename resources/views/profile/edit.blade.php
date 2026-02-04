@@ -16,7 +16,14 @@
                     <a href="{{ route('landing') }}" class="text-2xl font-bold text-pink-600">Cizy Nails</a>
                 </div>
                 <div class="flex gap-4">
-                    <a href="{{ route('dashboard') }}" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+                    @php
+                        $dashboardRoute = match(auth()->user()->role) {
+                            'admin' => 'admin.dashboard',
+                            'nail_artist' => 'nail-artist.dashboard',
+                            default => 'dashboard',
+                        };
+                    @endphp
+                    <a href="{{ route($dashboardRoute) }}" class="text-gray-600 hover:text-gray-900">Dashboard</a>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="text-gray-600 hover:text-gray-900">Logout</button>
@@ -98,7 +105,14 @@
                 </button>
             </form>
 
-            <a href="{{ route('dashboard') }}" class="text-center text-gray-600 text-sm mt-4 block hover:text-gray-900">
+            @php
+                $dashboardRoute = match(auth()->user()->role) {
+                    'admin' => 'admin.dashboard',
+                    'nail_artist' => 'nail-artist.dashboard',
+                    default => 'dashboard',
+                };
+            @endphp
+            <a href="{{ route($dashboardRoute) }}" class="text-center text-gray-600 text-sm mt-4 block hover:text-gray-900">
                 Back to Dashboard
             </a>
         </div>

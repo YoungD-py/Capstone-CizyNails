@@ -35,9 +35,9 @@
                 @csrf
 
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <input type="email" id="email" name="email" value="{{ old('email') }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="your@email.com">
-                    @error('email')
+                    <label for="login" class="block text-sm font-medium text-gray-700 mb-1">Email atau Nomor HP</label>
+                    <input type="text" id="login" name="login" value="{{ old('login', old('email')) }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="email@domain.com atau 0812xxxxxxx">
+                    @error('login')
                         <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -50,22 +50,23 @@
                     @enderror
                 </div>
 
+                <div class="flex justify-end">
+                    @if (Route::has('password.request'))
+                        <a href="{{ route('password.request') }}" class="text-sm text-pink-600 hover:text-pink-700 font-medium">Lupa password?</a>
+                    @else
+                        <a href="{{ url('/forgot-password') }}" class="text-sm text-pink-600 hover:text-pink-700 font-medium">Lupa password?</a>
+                    @endif
+                </div>
+
                 <button type="submit" class="w-full bg-pink-600 text-white py-2 rounded-lg hover:bg-pink-700 transition font-medium">
                     Login
                 </button>
             </form>
 
             <p class="text-center text-gray-600 text-sm mt-6">
-                Don't have an account? <a href="{{ route('register') }}" class="text-pink-600 hover:text-pink-700 font-medium">Register here</a>
+                Don't have an account boshku? <a href="{{ route('register') }}" class="text-pink-600 hover:text-pink-700 font-medium">Register here</a>
             </p>
 
-            <!-- Demo Credentials -->
-            <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p class="text-blue-800 text-sm font-semibold mb-2">Demo Credentials:</p>
-                <p class="text-blue-700 text-sm"><strong>Customer:</strong> user@cizy.com / user123</p>
-                <p class="text-blue-700 text-sm"><strong>Admin:</strong> admin@cizy.com / admin123</p>
-                <p class="text-blue-700 text-sm"><strong>NailArtist:</strong> cizynails@cizynails.com / cizynails123</p>
-            </div>
         </div>
     </div>
 </body>

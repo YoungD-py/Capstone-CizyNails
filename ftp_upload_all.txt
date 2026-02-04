@@ -1,0 +1,13 @@
+open 103.112.163.154
+cizynail
+Cizy0ct0pu5
+binary
+cd public_html
+put setup_notif.php
+put check_structure.php
+put get_notifications_simple.php
+put mark_notification_read.php
+put mark_all_read.php
+cd ../Cizy-Nails-Project/resources/views/admin
+put dashboard.blade.php
+quit

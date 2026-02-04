@@ -6,6 +6,7 @@
     <title>Admin Dashboard - Cizy Nails</title>
     <link rel="icon" type="image/jpeg" href="{{ asset('img/cizyLogo.jpeg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -16,6 +17,27 @@
                     <a href="{{ route('admin.dashboard') }}" class="text-2xl font-bold text-pink-600">Cizy Nails Admin</a>
                 </div>
                 <div class="flex gap-4 items-center">
+                    <!-- Notification Bell -->
+                    <div class="relative">
+                        <button id="notificationBtn" class="relative text-gray-600 hover:text-pink-600 transition text-xl">
+                            <i class="fas fa-bell"></i>
+                            <span id="unreadBadge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center {{ $unreadNotifications > 0 ? '' : 'hidden' }}">
+                                {{ $unreadNotifications }}
+                            </span>
+                        </button>
+                        
+                        <!-- Notification Dropdown -->
+                        <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+                            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                                <h3 class="font-semibold text-gray-800">Notifikasi</h3>
+                                @if($unreadNotifications > 0)
+                                    <button id="markAllRead" class="text-xs text-pink-600 hover:text-pink-700">Tandai semua dibaca</button>
+                                @endif
+                            </div>
+                            <div id="notificationList"></div>
+                        </div>
+                    </div>
+
                     <span class="text-gray-600">{{ auth()->user()->name }}</span>
                     <a href="{{ route('profile.edit') }}" class="text-gray-600 hover:text-pink-600 transition">Edit Profile</a>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
@@ -133,5 +155,134 @@
             </div>
         </div>
     </div>
+
+    <script>
+        const notificationBtn = document.getElementById('notificationBtn');
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        const notificationList = document.getElementById('notificationList');
+        const markAllRead = document.getElementById('markAllRead');
+        const unreadBadge = document.getElementById('unreadBadge');
+        const csrfToken = '{{ csrf_token() }}';
+
+        // Toggle notification dropdown
+        notificationBtn.addEventListener('click', () => {
+            notificationDropdown.classList.toggle('hidden');
+            if (!notificationDropdown.classList.contains('hidden')) {
+                loadNotifications();
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.relative')) {
+                notificationDropdown.classList.add('hidden');
+            }
+        });
+
+        // Load notifications
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/api/admin/notifications', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Unknown error');
+                }
+                
+                updateBadge(data.unread_count);
+                renderNotifications(data.notifications);
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                notificationList.innerHTML = '<p class="p-4 text-center text-gray-500">Error: ' + error.message + '</p>';
+            }
+        }
+
+        // Render notifications
+        function renderNotifications(notifications) {
+            if (notifications.length === 0) {
+                notificationList.innerHTML = '<p class="p-4 text-center text-gray-500">No notifications</p>';
+                return;
+            }
+
+            notificationList.innerHTML = notifications.map(notif => `
+                <div class="p-4 border-b border-gray-100 hover:bg-gray-50 transition ${notif.is_read ? '' : 'bg-blue-50'} cursor-pointer" onclick="markAsRead(${notif.id})">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-gray-800">${notif.title}</h4>
+                            <p class="text-sm text-gray-600 mt-1">${notif.customer_name}</p>
+                            <p class="text-xs text-gray-400 mt-2">${notif.created_at}</p>
+                        </div>
+                        ${notif.is_read ? '' : '<span class="bg-red-500 h-2 w-2 rounded-full mt-1"></span>'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Mark notification as read
+        async function markAsRead(id) {
+            try {
+                await fetch(`/api/admin/notifications/${id}/read`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'include'
+                });
+                loadNotifications();
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        // Mark all as read
+        markAllRead?.addEventListener('click', async () => {
+            try {
+                await fetch('/api/admin/notifications/read-all', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'include'
+                });
+                loadNotifications();
+            } catch (error) {
+                console.error('Error marking all as read:', error);
+            }
+        });
+
+        // Update badge count
+        function updateBadge(count) {
+            if (count > 0) {
+                unreadBadge.textContent = count;
+                unreadBadge.classList.remove('hidden');
+            } else {
+                unreadBadge.classList.add('hidden');
+            }
+        }
+
+        // Load notifications on page load
+        loadNotifications();
+
+        // Poll for new notifications every 30 seconds
+        setInterval(loadNotifications, 30000);
+    </script>
 </body>
 </html>

@@ -1,0 +1,9 @@
+SFTP Connection Test - Success!
+Date: 2026-01-26
+Project: Cizy Nails Booking System
+
+Koneksi ke cPanel berhasil!
+✓ FTP Connection Established
+✓ Server: 103.112.163.154
+✓ Username: cizynail
+✓ Remote Path: /home/cizynail/public_html

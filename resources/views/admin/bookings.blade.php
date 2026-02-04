@@ -263,25 +263,29 @@
 
         function deleteBooking(bookingId) {
             showConfirm('Are you sure you want to delete this booking? This action cannot be undone.', () => {
+                const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
                 fetch(`/admin/bookings/${bookingId}`, {
-                    method: 'DELETE',
+                    method: 'POST',
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
-                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                        'Accept': 'application/json',
                     },
+                    body: `_method=DELETE&_token=${encodeURIComponent(csrf)}`
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('Booking deleted successfully', 'success');
-                        setTimeout(() => location.reload(), 1000);
-                    } else {
-                        showToast('Error: ' + (data.message || 'Failed to delete booking'), 'error');
+                .then(async response => {
+                    const text = await response.text();
+                    let data;
+                    try { data = JSON.parse(text); } catch (e) { throw new Error(text || 'Unexpected response'); }
+                    if (!response.ok || !data.success) {
+                        throw new Error(data?.message || text || 'Failed to delete booking');
                     }
+                    showToast('Booking deleted successfully', 'success');
+                    setTimeout(() => location.reload(), 800);
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showToast('Error deleting booking', 'error');
+                    showToast('Error deleting booking: ' + error.message, 'error');
                 });
             }, null, { title: 'Delete Booking', confirmText: 'Delete', type: 'danger' });
         }
